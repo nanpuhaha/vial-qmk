@@ -7,7 +7,7 @@ from milc import cli
 
 
 @cli.argument('-n', '--dry-run', arg_only=True, action='store_true', help="Don't actually format.")
-@cli.subcommand('Pointer to the new command name: qmk format-python.', hidden=False if cli.config.user.developer else True)
+@cli.subcommand('Pointer to the new command name: qmk format-python.', hidden=not cli.config.user.developer)
 def pyformat(cli):
     """Pointer to the new command name: qmk format-python.
     """

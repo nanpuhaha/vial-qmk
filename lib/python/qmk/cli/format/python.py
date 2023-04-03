@@ -37,7 +37,7 @@ def filter_files(files):
 @cli.argument('-b', '--base-branch', default='origin/master', help='Branch to compare to diffs to.')
 @cli.argument('-a', '--all-files', arg_only=True, action='store_true', help='Format all files.')
 @cli.argument('files', nargs='*', arg_only=True, type=normpath, help='Filename(s) to format.')
-@cli.subcommand("Format python code according to QMK's style.", hidden=False if cli.config.user.developer else True)
+@cli.subcommand("Format python code according to QMK's style.", hidden=not cli.config.user.developer)
 def format_python(cli):
     """Format python code according to QMK's style.
     """

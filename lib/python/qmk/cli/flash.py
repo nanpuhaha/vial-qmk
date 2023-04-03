@@ -78,10 +78,15 @@ def flash(cli):
             sys.exit(0)
 
     else:
-        if cli.args.clean and not cli.args.filename and not cli.args.dry_run:
-            if cli.config.flash.keyboard and cli.config.flash.keymap:
-                command = create_make_command(cli.config.flash.keyboard, cli.config.flash.keymap, 'clean')
-                cli.run(command, capture_output=False, stdin=DEVNULL)
+        if (
+            cli.args.clean
+            and not cli.args.filename
+            and not cli.args.dry_run
+            and cli.config.flash.keyboard
+            and cli.config.flash.keymap
+        ):
+            command = create_make_command(cli.config.flash.keyboard, cli.config.flash.keymap, 'clean')
+            cli.run(command, capture_output=False, stdin=DEVNULL)
 
         # Build the environment vars
         envs = {}
@@ -109,15 +114,14 @@ def flash(cli):
 
             cli.log.info('Wrote keymap to {fg_cyan}%s/%s/keymap.c', keymap_path, user_keymap['keymap'])
 
-        else:
-            if cli.config.flash.keyboard and cli.config.flash.keymap:
-                # Generate the make command for a specific keyboard/keymap.
-                command = create_make_command(cli.config.flash.keyboard, cli.config.flash.keymap, cli.args.bootloader, parallel=cli.config.flash.parallel, **envs)
+        elif cli.config.flash.keyboard and cli.config.flash.keymap:
+            # Generate the make command for a specific keyboard/keymap.
+            command = create_make_command(cli.config.flash.keyboard, cli.config.flash.keymap, cli.args.bootloader, parallel=cli.config.flash.parallel, **envs)
 
-            elif not cli.config.flash.keyboard:
-                cli.log.error('Could not determine keyboard!')
-            elif not cli.config.flash.keymap:
-                cli.log.error('Could not determine keymap!')
+        elif not cli.config.flash.keyboard:
+            cli.log.error('Could not determine keyboard!')
+        else:
+            cli.log.error('Could not determine keymap!')
 
         # Compile the firmware, if we're able to
         if command:

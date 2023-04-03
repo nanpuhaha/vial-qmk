@@ -26,16 +26,16 @@ def _find_via_layout_macro(keyboard):
 
 def _convert_macros(via_macros):
     via_macros = list(filter(lambda f: bool(f), via_macros))
-    if len(via_macros) == 0:
-        return list()
+    if not via_macros:
+        return []
     split_regex = re.compile(r'(}\,)|(\,{)')
-    macros = list()
+    macros = []
     for via_macro in via_macros:
         # Split VIA macro to its elements
         macro = split_regex.split(via_macro)
         # Remove junk elements (None, '},' and ',{')
-        macro = list(filter(lambda f: False if f in (None, '},', ',{') else True, macro))
-        macro_data = list()
+        macro = list(filter(lambda f: f not in (None, '},', ',{'), macro))
+        macro_data = []
         for m in macro:
             if '{' in m or '}' in m:
                 # Found keycode(s)
@@ -55,12 +55,11 @@ def _convert_macros(via_macros):
 
 def _fix_macro_keys(keymap_data):
     macro_no = re.compile(r'MACRO0?([0-9]{1,2})')
-    for i in range(0, len(keymap_data)):
-        for j in range(0, len(keymap_data[i])):
+    for i in range(len(keymap_data)):
+        for j in range(len(keymap_data[i])):
             kc = keymap_data[i][j]
-            m = macro_no.match(kc)
-            if m:
-                keymap_data[i][j] = f'MACRO_{m.group(1)}'
+            if m := macro_no.match(kc):
+                keymap_data[i][j] = f'MACRO_{m[1]}'
     return keymap_data
 
 
@@ -72,29 +71,27 @@ def _via_to_keymap(via_backup, keyboard_data, keymap_layout):
         exit(1)
 
     layout_data = layout_data['layout']
-    sorting_hat = list()
-    for index, data in enumerate(layout_data):
-        sorting_hat.append([index, data['matrix']])
-
+    sorting_hat = [
+        [index, data['matrix']] for index, data in enumerate(layout_data)
+    ]
     sorting_hat.sort(key=lambda k: (k[1][0], k[1][1]))
 
     pos = 0
-    for row_num in range(0, keyboard_data['matrix_size']['rows']):
-        for col_num in range(0, keyboard_data['matrix_size']['cols']):
+    for row_num in range(keyboard_data['matrix_size']['rows']):
+        for col_num in range(keyboard_data['matrix_size']['cols']):
             if pos >= len(sorting_hat) or sorting_hat[pos][1][0] != row_num or sorting_hat[pos][1][1] != col_num:
                 sorting_hat.insert(pos, [None, [row_num, col_num]])
             else:
                 sorting_hat.append([None, [row_num, col_num]])
             pos += 1
 
-    keymap_data = list()
+    keymap_data = []
     for layer in via_backup['layers']:
-        pos = 0
-        layer_data = list()
-        for key in layer:
-            if sorting_hat[pos][0] is not None:
-                layer_data.append([sorting_hat[pos][0], key])
-            pos += 1
+        layer_data = [
+            [sorting_hat[pos][0], key]
+            for pos, key in enumerate(layer)
+            if sorting_hat[pos][0] is not None
+        ]
         layer_data.sort()
         layer_data = [kc[1] for kc in layer_data]
         keymap_data.append(layer_data)
@@ -115,7 +112,7 @@ def via2json(cli):
     This command uses the `qmk.keymap` module to generate a keymap.json from a VIA backup json. The generated keymap is written to stdout, or to a file if -o is provided.
     """
     # Find appropriate layout macro
-    keymap_layout = cli.args.layout if cli.args.layout else _find_via_layout_macro(cli.args.keyboard)
+    keymap_layout = cli.args.layout or _find_via_layout_macro(cli.args.keyboard)
     if not keymap_layout:
         cli.log.error(f"Couldn't find LAYOUT macro for keyboard {cli.args.keyboard}. Please specify it with the '-l' argument.")
         exit(1)
@@ -131,7 +128,7 @@ def via2json(cli):
     keymap_data = _via_to_keymap(via_backup, keyboard_data, keymap_layout)
 
     # Convert macros
-    macro_data = list()
+    macro_data = []
     if via_backup.get('macros'):
         macro_data = _convert_macros(via_backup['macros'])
 

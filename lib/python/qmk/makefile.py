@@ -36,8 +36,7 @@ def parse_rules_mk_file(file, rules_mk=None):
                     if key.strip() not in rules_mk:
                         rules_mk[key.strip()] = value.strip()
                     else:
-                        rules_mk[key.strip()] += ' ' + value.strip()
-                # Set if absent
+                        rules_mk[key.strip()] += f' {value.strip()}'
                 elif "?=" in line:
                     key, value = line.split('?=', 1)
                     if key.strip() not in rules_mk:

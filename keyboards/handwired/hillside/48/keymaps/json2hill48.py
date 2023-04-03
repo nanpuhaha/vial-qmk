@@ -80,7 +80,7 @@ def format_layers(layers):
             col = get_col(index)
             max_length = max_key_length.get(col.num)
             if (not max_length) or len(keycode) > max_length:
-                max_key_length.update({col.num: len(keycode)})
+                max_key_length[col.num] = len(keycode)
     # Format each layer
     for (layer_index, layer) in enumerate(layers):
         # Opening [
@@ -114,11 +114,7 @@ def format_layers(layers):
 
         # Closing ] with , or without
         formatted += 2 * indent_level * " "
-        if layer_index < len(layers) - 1:
-            formatted += "],\n"
-        else:
-            formatted += "]\n"
-
+        formatted += "],\n" if layer_index < len(layers) - 1 else "]\n"
     formatted += indent_level * " "
     formatted += "]"
 

@@ -17,12 +17,11 @@ def _list_defaultish_keymaps(kb):
     """
     defaultish = ['ansi', 'iso', 'via']
 
-    keymaps = set()
-    for x in list_keymaps(kb):
-        if x in defaultish or x.startswith('default'):
-            keymaps.add(x)
-
-    return keymaps
+    return {
+        x
+        for x in list_keymaps(kb)
+        if x in defaultish or x.startswith('default')
+    }
 
 
 def _handle_json_errors(kb, info):
@@ -69,7 +68,7 @@ def _rules_mk_assignment_only(kb):
                         continuation = line[:-1]
                         continue
 
-                    if line and '=' not in line:
+                    if '=' not in line:
                         errors.append(f'Non-assignment code on line +{i} {rules_mk}: {line}')
 
     return errors
@@ -82,10 +81,8 @@ def keymap_check(kb, km):
     keymap_path = locate_keymap(kb, km)
 
     if not keymap_path:
-        ok = False
         cli.log.error("%s: Can't find %s keymap.", kb, km)
-        return ok
-
+        return False
     # Additional checks
     invalid_files = git_get_ignored_files(keymap_path.parent.as_posix())
     for file in invalid_files:
@@ -104,9 +101,7 @@ def keyboard_check(kb):
     if not _handle_json_errors(kb, kb_info):
         ok = False
 
-    # Additional checks
-    rules_mk_assignment_errors = _rules_mk_assignment_only(kb)
-    if rules_mk_assignment_errors:
+    if rules_mk_assignment_errors := _rules_mk_assignment_only(kb):
         ok = False
         cli.log.error('%s: Non-assignment code found in rules.mk. Move it to post_rules.mk instead.', kb)
         for assignment_error in rules_mk_assignment_errors:

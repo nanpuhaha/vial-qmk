@@ -25,10 +25,9 @@ def git_get_version(repo_dir='.', check_dir='.'):
         if git_describe.returncode == 0:
             return git_describe.stdout.strip()
 
-        else:
-            cli.log.warn(f'"{" ".join(git_describe_cmd)}" returned error code {git_describe.returncode}')
-            print(git_describe.stderr)
-            return None
+        cli.log.warn(f'"{" ".join(git_describe_cmd)}" returned error code {git_describe.returncode}')
+        print(git_describe.stderr)
+        return None
 
     return None
 
@@ -46,7 +45,7 @@ def git_get_branch():
     """Returns the current branch for a repo, or None.
     """
     git_branch = cli.run(['git', 'branch', '--show-current'])
-    if not git_branch.returncode != 0 or not git_branch.stdout:
+    if git_branch.returncode == 0 or not git_branch.stdout:
         # Workaround for Git pre-2.22
         git_branch = cli.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
 
@@ -133,6 +132,4 @@ def git_get_ignored_files(check_dir='.'):
     """Return a list of files that would be captured by the current .gitignore
     """
     invalid = cli.run(['git', 'ls-files', '-c', '-o', '-i', '--exclude-from=.gitignore', check_dir])
-    if invalid.returncode != 0:
-        return []
-    return invalid.stdout.strip().splitlines()
+    return [] if invalid.returncode != 0 else invalid.stdout.strip().splitlines()

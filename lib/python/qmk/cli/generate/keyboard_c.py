@@ -25,7 +25,7 @@ def _gen_led_config(info_data):
     if not config_type:
         return lines
 
-    matrix = [['NO_LED'] * cols for i in range(rows)]
+    matrix = [['NO_LED'] * cols for _ in range(rows)]
     pos = []
     flags = []
 
@@ -37,23 +37,21 @@ def _gen_led_config(info_data):
         pos.append(f'{{ {item.get("x", 0)},{item.get("y", 0)} }}')
         flags.append(str(item.get('flags', 0)))
 
-    if config_type == 'rgb_matrix':
-        lines.append('#ifdef RGB_MATRIX_ENABLE')
-        lines.append('#include "rgb_matrix.h"')
-    elif config_type == 'led_matrix':
-        lines.append('#ifdef LED_MATRIX_ENABLE')
-        lines.append('#include "led_matrix.h"')
-
-    lines.append('__attribute__ ((weak)) led_config_t g_led_config = {')
-    lines.append('  {')
-    for line in matrix:
-        lines.append(f'    {{ {",".join(line)} }},')
-    lines.append('  },')
-    lines.append(f'  {{ {",".join(pos)} }},')
-    lines.append(f'  {{ {",".join(flags)} }},')
-    lines.append('};')
-    lines.append('#endif')
-
+    if config_type == 'led_matrix':
+        lines.extend(('#ifdef LED_MATRIX_ENABLE', '#include "led_matrix.h"'))
+    elif config_type == 'rgb_matrix':
+        lines.extend(('#ifdef RGB_MATRIX_ENABLE', '#include "rgb_matrix.h"'))
+    lines.extend(('__attribute__ ((weak)) led_config_t g_led_config = {', '  {'))
+    lines.extend(f'    {{ {",".join(line)} }},' for line in matrix)
+    lines.extend(
+        (
+            '  },',
+            f'  {{ {",".join(pos)} }},',
+            f'  {{ {",".join(flags)} }},',
+            '};',
+            '#endif',
+        )
+    )
     return lines
 
 

@@ -27,8 +27,7 @@ def pruning_validator(validator_class):
             if prop not in properties:
                 del instance[prop]
 
-        for error in validate_properties(validator, properties, instance, schema):
-            yield error
+        yield from validate_properties(validator, properties, instance, schema)
 
     return validators.extend(validator_class, {"properties": remove_additional_properties})
 
@@ -49,7 +48,7 @@ def strip_info_json(kb_info_json):
 @cli.argument('-km', '--keymap', help='Show the layers for a JSON keymap too.')
 @cli.argument('-o', '--output', arg_only=True, completer=FilesCompleter, help='Write the output the specified file, overwriting if necessary.')
 @cli.argument('-ow', '--overwrite', arg_only=True, action='store_true', help='Overwrite the existing info.json. (Overrides the location of --output)')
-@cli.subcommand('Generate an info.json file for a keyboard.', hidden=False if cli.config.user.developer else True)
+@cli.subcommand('Generate an info.json file for a keyboard.', hidden=not cli.config.user.developer)
 @automagic_keyboard
 @automagic_keymap
 def generate_info_json(cli):

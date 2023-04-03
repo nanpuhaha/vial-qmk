@@ -13,7 +13,7 @@ DOXYGEN_PATH = BUILD_PATH / 'doxygen'
 MOXYGEN_PATH = BUILD_DOCS_PATH / 'internals'
 
 
-@cli.subcommand('Build QMK documentation.', hidden=False if cli.config.user.developer else True)
+@cli.subcommand('Build QMK documentation.', hidden=not cli.config.user.developer)
 def generate_docs(cli):
     """Invoke the docs generation process
 
@@ -30,7 +30,7 @@ def generate_docs(cli):
 
     # When not verbose we want to hide all output
     args = {
-        'capture_output': False if cli.config.general.verbose else True,
+        'capture_output': not cli.config.general.verbose,
         'check': True,
         'stdin': DEVNULL,
     }

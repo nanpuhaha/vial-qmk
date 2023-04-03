@@ -16,12 +16,7 @@ from qmk.json_schema import json_load, validate
 def _find_make():
     """Returns the correct make command for this environment.
     """
-    make_cmd = os.environ.get('MAKE')
-
-    if not make_cmd:
-        make_cmd = 'gmake' if shutil.which('gmake') else 'make'
-
-    return make_cmd
+    return os.environ.get('MAKE') or ('gmake' if shutil.which('gmake') else 'make')
 
 
 def create_make_target(target, dry_run=False, parallel=1, **env_vars):
@@ -45,12 +40,9 @@ def create_make_target(target, dry_run=False, parallel=1, **env_vars):
 
         A command that can be run to make the specified keyboard and keymap
     """
-    env = []
     make_cmd = _find_make()
 
-    for key, value in env_vars.items():
-        env.append(f'{key}={value}')
-
+    env = [f'{key}={value}' for key, value in env_vars.items()]
     return [make_cmd, *(['-n'] if dry_run else []), *get_make_parallel_args(parallel), *env, target]
 
 
@@ -98,7 +90,7 @@ def get_make_parallel_args(parallel=1):
         # 0 or -1 means -j without argument (unlimited jobs)
         parallel_args.append('--jobs')
     else:
-        parallel_args.append('--jobs=' + str(parallel))
+        parallel_args.append(f'--jobs={str(parallel)}')
 
     if int(parallel) != 1:
         # If more than 1 job is used, synchronize parallel output by target
@@ -160,9 +152,7 @@ def compile_configurator_json(user_keymap, bootloader=None, parallel=1, **env_va
     if bootloader:
         make_command.append(bootloader)
 
-    for key, value in env_vars.items():
-        make_command.append(f'{key}={value}')
-
+    make_command.extend(f'{key}={value}' for key, value in env_vars.items())
     make_command.extend([
         f'KEYBOARD={user_keymap["keyboard"]}',
         f'KEYMAP={user_keymap["keymap"]}',
@@ -227,7 +217,7 @@ def dump_lines(output_file, lines, quiet=True):
     if output_file and output_file.name != '-':
         output_file.parent.mkdir(parents=True, exist_ok=True)
         if output_file.exists():
-            output_file.replace(output_file.parent / (output_file.name + '.bak'))
+            output_file.replace(output_file.parent / f'{output_file.name}.bak')
         output_file.write_text(generated, encoding='utf-8')
 
         if not quiet:

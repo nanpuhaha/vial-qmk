@@ -39,7 +39,7 @@ def _translate(s):
     elif re.match("^TT[0-9]{1,2}$", s):  # Tn, works from TT0 to TT99
         return ("TT({0})".format(s[2:]), "{0:^7}".format(s))
     elif s in layout.uc_dict:
-        return ("X("+s+")", "   {0}   ".format(chr(int(layout.uc_dict[s], 0))))
+        return f"X({s})", "   {0}   ".format(chr(int(layout.uc_dict[s], 0)))
     elif s in layout.qmk_dict:
         return (layout.qmk_dict[s], "{0:^7}".format(s))
     elif s == s.upper() and s.startswith("KC_"):
@@ -59,22 +59,43 @@ def toLgd(s):
 def quoteC(text):
     yield "/*"
     for line in text:
-        yield " * " + line
+        yield f" * {line}"
     yield " */\n"
 
 
 def getKeymapText(id, layer, columns, rows):
-    keymap = []
-    keymap.append("Layer %d" % id)
-    keymap.append("-------------------------------------------------               -------------------------------------------------")
-    keymap.append("|{0}|{1}|{2}|{3}|{4}|{5}|               |{6}|{7}|{8}|{9}|{10}|{11}|".format(*map(toLgd, layer[:12])))
-    keymap.append("-------------------------------------------------               -------------------------------------------------")
-    keymap.append("|{0}|{1}|{2}|{3}|{4}|{5}|               |{6}|{7}|{8}|{9}|{10}|{11}|".format(*map(toLgd, layer[12:24])))
-    keymap.append("-------------------------------------------------               -------------------------------------------------")
-    keymap.append("|{0}|{1}|{2}|{3}|{4}|{5}|               |{6}|{7}|{8}|{9}|{10}|{11}|".format(*map(toLgd, layer[24:36])))
-    keymap.append("-----------------------------------------------------------------------------------------------------------------")
-    keymap.append(" {0} {1} {2}        |{3}|{4}|{5}|{6}|{7}|{8}|        {9} {10} {11}".format(*map(toLgd, layer[36:48])).rstrip())
-    keymap.append("                                -------------------------------------------------")
+    keymap = [
+        "Layer %d" % id,
+        "-------------------------------------------------               -------------------------------------------------",
+        "|{0}|{1}|{2}|{3}|{4}|{5}|               |{6}|{7}|{8}|{9}|{10}|{11}|".format(
+            *map(toLgd, layer[:12])
+        ),
+        "-------------------------------------------------               -------------------------------------------------",
+    ]
+    keymap.extend(
+        (
+            "|{0}|{1}|{2}|{3}|{4}|{5}|               |{6}|{7}|{8}|{9}|{10}|{11}|".format(
+                *map(toLgd, layer[12:24])
+            ),
+            "-------------------------------------------------               -------------------------------------------------",
+        )
+    )
+    keymap.extend(
+        (
+            "|{0}|{1}|{2}|{3}|{4}|{5}|               |{6}|{7}|{8}|{9}|{10}|{11}|".format(
+                *map(toLgd, layer[24:36])
+            ),
+            "-----------------------------------------------------------------------------------------------------------------",
+        )
+    )
+    keymap.extend(
+        (
+            " {0} {1} {2}        |{3}|{4}|{5}|{6}|{7}|{8}|        {9} {10} {11}".format(
+                *map(toLgd, layer[36:48])
+            ).rstrip(),
+            "                                -------------------------------------------------",
+        )
+    )
     return keymap
 
 
@@ -102,8 +123,7 @@ def writeKeymap(f_template, f_keymap, layers, columns, rows):
             doCopy = False
             for layer, L in enumerate(layers):
                 r_counter = rows
-                f_keymap.write('\n'.join(quoteC(getKeymapText(layer, L, columns, rows))))
-
+                f_keymap.write('\n'.join(quoteC(getKeymapText(layer, L, columns, r_counter))))
                 l_code = '\tLAYOUT_ortho_4x12(\n'
                 for r in range(r_counter):
                     r_counter -= 1
@@ -113,14 +133,11 @@ def writeKeymap(f_template, f_keymap, layers, columns, rows):
                         c_counter -= 1
                         if c != 0:
                             l_code += " "
-                        l_code += "%s" % toKC(L[r*columns + columns-c_counter-1])
+                        l_code += f"{toKC(L[r * columns + columns - c_counter - 1])}"
                         if r_counter or c_counter:
                             l_code += ","
                     l_code += '\n'
-                if layer + 1 != len(layout.layers):
-                    l_code += "\t),\n\n"
-                else:
-                    l_code += "\t)\n"
+                l_code += "\t),\n\n" if layer + 1 != len(layout.layers) else "\t)\n"
                 f_keymap.write(l_code)
         if doCopy:
             f_keymap.write(line)
@@ -136,15 +153,15 @@ def getKeymapJSON(keyboard, keymap, layout, layers):
 
 
 def getKeymapAsciidoc(title, layers, columns, rows):
-    yield '= ' + title
+    yield f'= {title}'
     yield ''
     for id, layer in enumerate(layers):
         keymap = getKeymapText(id, layer, columns, rows)
         if len(keymap):
-            yield '.' + keymap[0]
+            yield f'.{keymap[0]}'
             yield '--------------------------'
             for line in keymap[1:]:
-                yield ' ' + line
+                yield f' {line}'
             yield '--------------------------'
             yield ''
 
@@ -179,7 +196,7 @@ if __name__ == "__main__":
     keyboard = list(reversed(list(pathToKeyboard(abspath))))
     keymap = pathToKeymap(abspath)
     keyboard_layout = 'LAYOUT_ortho_4x12'
-    with open("%s_%s.json" % ('_'.join(keyboard), keymap), mode="w") as f_keymapjson:
+    with open(f"{'_'.join(keyboard)}_{keymap}.json", mode="w") as f_keymapjson:
         f_keymapjson.write(
                 getKeymapJSON(
                     '/'.join(keyboard),
@@ -189,6 +206,15 @@ if __name__ == "__main__":
                 )
 
     with open("keymap.adoc", mode="w") as f_keymapasciidoc:
-        f_keymapasciidoc.write('\n'.join(getKeymapAsciidoc('Signum 3.0 %s_%s' % ('_'.join(keyboard), keymap), layout.layers, columns=12, rows=4)))
+        f_keymapasciidoc.write(
+            '\n'.join(
+                getKeymapAsciidoc(
+                    f"Signum 3.0 {'_'.join(keyboard)}_{keymap}",
+                    layout.layers,
+                    columns=12,
+                    rows=4,
+                )
+            )
+        )
         print("Run the following command to generate a PDF from the keymap")
         print("a2x -f pdf --xsltproc-opts '--stringparam page.orientation landscape --stringparam body.font.master 12' --fop -v keymap.adoc")

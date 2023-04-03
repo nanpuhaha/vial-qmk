@@ -31,7 +31,7 @@ def main():
                 break
 
         if not uid:
-            print("Keyboard {} does not define a VIAL_KEYBOARD_UID".format(keyboard))
+            print(f"Keyboard {keyboard} does not define a VIAL_KEYBOARD_UID")
             error = 1
             continue
 
@@ -41,11 +41,11 @@ def main():
         uid = struct.pack("BBBBBBBB", *uid).hex()
         uid_to_keyboards[uid].add(keyboard)
 
-        print("{} uses UID {}".format(keyboard, uid))
+        print(f"{keyboard} uses UID {uid}")
 
     for uid, keyboards in uid_to_keyboards.items():
         if len(keyboards) > 1:
-            print("UID {} duplicated: {}".format(uid, keyboards))
+            print(f"UID {uid} duplicated: {keyboards}")
             error = 1
 
     return error

@@ -16,10 +16,7 @@ ignored_titles = ["Format code according to conventions"]
 
 
 def _is_ignored(title):
-    for ignore in ignored_titles:
-        if ignore in title:
-            return True
-    return False
+    return any(ignore in title for ignore in ignored_titles)
 
 
 def _get_pr_info(cache, gh, pr_num):
@@ -53,7 +50,7 @@ def _get_github():
 
 @cli.argument('-f', '--from-ref', default='0.11.0', help='Git revision/tag/reference/branch to begin search')
 @cli.argument('-b', '--branch', default='upstream/develop', help='Git branch to iterate (default: "upstream/develop")')
-@cli.subcommand('Creates the develop PR list.', hidden=False if cli.config.user.developer else True)
+@cli.subcommand('Creates the develop PR list.', hidden=not cli.config.user.developer)
 def generate_develop_pr_list(cli):
     """Retrieves information from GitHub regarding the list of PRs associated
     with a merge of `develop` branch into `master`.
@@ -107,8 +104,13 @@ def generate_develop_pr_list(cli):
     for line in commit_list.stdout.split('\n'):
         match = git_expr.search(line)
         if match:
-            pr_info = _get_pr_info(cache, gh, match.group("pr"))
-            commit_info = {'hash': match.group("hash"), 'title': pr_info['title'], 'pr_num': int(match.group("pr")), 'pr_labels': [label.name for label in pr_info.labels.items]}
+            pr_info = _get_pr_info(cache, gh, match["pr"])
+            commit_info = {
+                'hash': match["hash"],
+                'title': pr_info['title'],
+                'pr_num': int(match["pr"]),
+                'pr_labels': [label.name for label in pr_info.labels.items],
+            }
             _categorise_commit(commit_info)
 
     def _dump_commit_list(name, collection):

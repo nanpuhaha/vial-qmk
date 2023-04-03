@@ -26,14 +26,14 @@ if (waveFile.getsampwidth() != 2):
     raise(Exception("This script currently only works with 16bit audio files"))
 
 length = waveFile.getnframes()
-out = "#define DAC_SAMPLE_CUSTOM_LENGTH " + str(length) + "\n\n"
-out += "static const dacsample_t dac_sample_custom[" + str(length) + "] = {"
-for i in range(0,length):
+out = f"#define DAC_SAMPLE_CUSTOM_LENGTH {str(length)}" + "\n\n"
+out += f"static const dacsample_t dac_sample_custom[{str(length)}" + "] = {"
+for i in range(length):
     if (i % 8 == 0):
         out += "\n    "
     waveData = waveFile.readframes(1)
     data = struct.unpack("<h", waveData)
-    out += str(int((int(data[0]) + 0x8000) / 16)) + ", "
+    out += f"{int((int(data[0]) + 32768) / 16)}, "
 out = out[:-2]
 out += "\n};"
 print(out)

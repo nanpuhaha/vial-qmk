@@ -95,7 +95,7 @@ def parse_file(file_name: str) -> List[Tuple[str, str]]:
       continue
 
     # Check that `typo` is valid.
-    if not(all([c in TYPO_CHARS for c in typo])):
+    if any(c not in TYPO_CHARS for c in typo):
       print(f'Error:{line_number}: Typo "{typo}" has '
             'characters other than ' + ''.join(TYPO_CHARS.keys()))
       sys.exit(1)
@@ -138,9 +138,7 @@ def make_trie(autocorrections: List[Tuple[str, str]]) -> Dict[str, Any]:
 def parse_file_lines(file_name: str) -> Iterator[Tuple[int, str, str]]:
   """Parses lines read from `file_name` into typo-correction pairs."""
 
-  line_number = 0
-  for line in open(file_name, 'rt'):
-    line_number += 1
+  for line_number, line in enumerate(open(file_name, 'rt'), start=1):
     line = line.strip()
     if line and line[0] != '#':
       # Parse syntax "typo -> correction", using strip to ignore indenting.
@@ -163,17 +161,17 @@ def check_typo_against_dictionary(line_number: int, typo: str) -> None:
     if typo[1:-1] in CORRECT_WORDS:
       print(f'Warning:{line_number}: Typo "{typo}" is a correctly spelled '
             'dictionary word.')
-  elif typo.startswith(':') and not typo.endswith(':'):
+  elif typo.startswith(':'):
     for word in CORRECT_WORDS:
       if word.startswith(typo[1:]):
         print(f'Warning:{line_number}: Typo "{typo}" would falsely trigger '
               f'on correctly spelled word "{word}".')
-  elif not typo.startswith(':') and typo.endswith(':'):
+  elif typo.endswith(':'):
     for word in CORRECT_WORDS:
       if word.endswith(typo[:-1]):
         print(f'Warning:{line_number}: Typo "{typo}" would falsely trigger '
               f'on correctly spelled word "{word}".')
-  elif not typo.startswith(':') and not typo.endswith(':'):
+  else:
     for word in CORRECT_WORDS:
       if typo in word:
         print(f'Warning:{line_number}: Typo "{typo}" would falsely trigger '
@@ -294,8 +292,8 @@ def main(argv):
   autocorrections = parse_file(dict_file)
   trie = make_trie(autocorrections)
   data = serialize_trie(autocorrections, trie)
-  print(f'Processed %d autocorrection entries to table with %d bytes.'
-        % (len(autocorrections), len(data)))
+  print(('Processed %d autocorrection entries to table with %d bytes.' %
+         (len(autocorrections), len(data))))
   write_generated_code(autocorrections, data, 'autocorrection_data.h')
 
 

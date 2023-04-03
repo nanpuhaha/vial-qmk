@@ -45,18 +45,16 @@ def sampleTriangle():
 
 #compromise between square and triangle wave,
 def sampleTrapezoidal():
+    a=3 #slope/inclination
     for i in range(AUDIO_DAC_BUFFER_SIZE):
-        a=3 #slope/inclination
         if (i < AUDIO_DAC_BUFFER_SIZE/2):
             s = a * (i * AUDIO_DAC_SAMPLE_MAX/(AUDIO_DAC_BUFFER_SIZE/2)) + (1-a)*AUDIO_DAC_SAMPLE_MAX/2
         else:
             i = i - AUDIO_DAC_BUFFER_SIZE/2
             s = AUDIO_DAC_SAMPLE_MAX - a * (i * AUDIO_DAC_SAMPLE_MAX/(AUDIO_DAC_BUFFER_SIZE/2)) - (1-a)*AUDIO_DAC_SAMPLE_MAX/2
 
-        if s < 0:
-            s=0
-        if s> AUDIO_DAC_SAMPLE_MAX:
-            s=AUDIO_DAC_SAMPLE_MAX
+        s = max(s, 0)
+        s = min(s, AUDIO_DAC_SAMPLE_MAX)
         samples.append(s)
 
 
