@@ -76,13 +76,12 @@ def filter_files(files, core_only=False):
     files = list(map(normpath, filter(None, files)))
 
     for file in files:
-        if core_only:
-            # The following statement checks each file to see if the file path is
-            # - in the core directories
-            # - not in the ignored directories
-            if not any(is_relative_to(file, i) for i in core_dirs) or any(is_relative_to(file, i) for i in ignored):
-                cli.log.debug("Skipping non-core file %s, as '--core-only' is used.", file)
-                continue
+        if core_only and (
+            not any(is_relative_to(file, i) for i in core_dirs)
+            or any(is_relative_to(file, i) for i in ignored)
+        ):
+            cli.log.debug("Skipping non-core file %s, as '--core-only' is used.", file)
+            continue
 
         if file.suffix[1:] in c_file_suffixes:
             yield file
@@ -95,7 +94,7 @@ def filter_files(files, core_only=False):
 @cli.argument('-a', '--all-files', arg_only=True, action='store_true', help='Format all core files.')
 @cli.argument('--core-only', arg_only=True, action='store_true', help='Format core files only.')
 @cli.argument('files', nargs='*', arg_only=True, type=normpath, completer=FilesCompleter('.c'), help='Filename(s) to format.')
-@cli.subcommand("Format C code according to QMK's style.", hidden=False if cli.config.user.developer else True)
+@cli.subcommand("Format C code according to QMK's style.", hidden=not cli.config.user.developer)
 def format_c(cli):
     """Format C code according to QMK's style.
     """
@@ -132,7 +131,4 @@ def format_c(cli):
         return False
 
     # Run clang-format on the files we've found
-    if cli.args.dry_run:
-        return not find_diffs(files)
-    else:
-        return cformat_run(files)
+    return not find_diffs(files) if cli.args.dry_run else cformat_run(files)

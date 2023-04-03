@@ -22,10 +22,7 @@ class QMKJSONEncoder(json.JSONEncoder):
     def encode_decimal(self, obj):
         """Encode a decimal object.
         """
-        if obj == int(obj):  # I can't believe Decimal objects don't have .is_integer()
-            return int(obj)
-
-        return float(obj)
+        return int(obj) if obj == int(obj) else float(obj)
 
     def encode_list(self, obj):
         """Encode a list-like object.
@@ -33,12 +30,11 @@ class QMKJSONEncoder(json.JSONEncoder):
         if self.primitives_only(obj):
             return "[" + ", ".join(self.encode(element) for element in obj) + "]"
 
-        else:
-            self.indentation_level += 1
-            output = [self.indent_str + self.encode(element) for element in obj]
-            self.indentation_level -= 1
+        self.indentation_level += 1
+        output = [self.indent_str + self.encode(element) for element in obj]
+        self.indentation_level -= 1
 
-            return "[\n" + ",\n".join(output) + "\n" + self.indent_str + "]"
+        return "[\n" + ",\n".join(output) + "\n" + self.indent_str + "]"
 
     def encode(self, obj):
         """Encode keymap.json objects for QMK.
@@ -74,18 +70,19 @@ class InfoJSONEncoder(QMKJSONEncoder):
     def encode_dict(self, obj):
         """Encode info.json dictionaries.
         """
-        if obj:
-            if set(("x", "y")).issubset(obj.keys()):
-                # These are part of a layout/led_config, put them on a single line.
-                return "{ " + ", ".join(f"{self.encode(key)}: {self.encode(element)}" for key, element in sorted(obj.items())) + " }"
-
-            else:
-                self.indentation_level += 1
-                output = [self.indent_str + f"{json.dumps(key)}: {self.encode(value)}" for key, value in sorted(obj.items(), key=self.sort_dict)]
-                self.indentation_level -= 1
-                return "{\n" + ",\n".join(output) + "\n" + self.indent_str + "}"
-        else:
+        if not obj:
             return "{}"
+        if {"x", "y"}.issubset(obj.keys()):
+            # These are part of a layout/led_config, put them on a single line.
+            return "{ " + ", ".join(f"{self.encode(key)}: {self.encode(element)}" for key, element in sorted(obj.items())) + " }"
+
+        self.indentation_level += 1
+        output = [
+            f"{self.indent_str}{json.dumps(key)}: {self.encode(value)}"
+            for key, value in sorted(obj.items(), key=self.sort_dict)
+        ]
+        self.indentation_level -= 1
+        return "{\n" + ",\n".join(output) + "\n" + self.indent_str + "}"
 
     def sort_dict(self, key):
         """Forces layout to the back of the sort order.
@@ -112,7 +109,7 @@ class InfoJSONEncoder(QMKJSONEncoder):
                 return '99layouts'
 
             else:
-                return '50' + str(key)
+                return f'50{str(key)}'
 
         return key
 
@@ -145,14 +142,13 @@ class KeymapJSONEncoder(QMKJSONEncoder):
             for key in obj:
                 if key == 'JSON_NEWLINE':
                     layer.append([])
-                else:
-                    if isinstance(key, dict):
-                        # We have a macro
+                elif isinstance(key, dict):
+                    # We have a macro
 
-                        # TODO: Add proper support for nicely formatting keymap.json macros
-                        layer[-1].append(f'{self.encode(key)}')
-                    else:
-                        layer[-1].append(f'"{key}"')
+                    # TODO: Add proper support for nicely formatting keymap.json macros
+                    layer[-1].append(f'{self.encode(key)}')
+                else:
+                    layer[-1].append(f'"{key}"')
 
             layer = [f"{self.indent_str*indent_level}{', '.join(row)}" for row in layer]
 
@@ -190,6 +186,6 @@ class KeymapJSONEncoder(QMKJSONEncoder):
                 return '99documentation'
 
             else:
-                return '50' + str(key)
+                return f'50{str(key)}'
 
         return key

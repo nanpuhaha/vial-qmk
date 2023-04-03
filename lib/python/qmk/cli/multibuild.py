@@ -18,14 +18,17 @@ import qmk.keymap
 def _make_rules_mk_filter(key, value):
     def _rules_mk_filter(keyboard_name):
         rules_mk = qmk.keyboard.rules_mk(keyboard_name)
-        return True if key in rules_mk and rules_mk[key].lower() == str(value).lower() else False
+        return key in rules_mk and rules_mk[key].lower() == str(value).lower()
 
     return _rules_mk_filter
 
 
 def _is_split(keyboard_name):
     rules_mk = qmk.keyboard.rules_mk(keyboard_name)
-    return True if 'SPLIT_KEYBOARD' in rules_mk and rules_mk['SPLIT_KEYBOARD'].lower() == 'yes' else False
+    return (
+        'SPLIT_KEYBOARD' in rules_mk
+        and rules_mk['SPLIT_KEYBOARD'].lower() == 'yes'
+    )
 
 
 @cli.argument('-j', '--parallel', type=int, default=1, help="Set the number of parallel make jobs; 0 means unlimited.")
@@ -33,7 +36,7 @@ def _is_split(keyboard_name):
 @cli.argument('-f', '--filter', arg_only=True, action='append', default=[], help="Filter the list of keyboards based on the supplied value in rules.mk. Supported format is 'SPLIT_KEYBOARD=yes'. May be passed multiple times.")
 @cli.argument('-km', '--keymap', type=str, default='default', help="The keymap name to build. Default is 'default'.")
 @cli.argument('-e', '--env', arg_only=True, action='append', default=[], help="Set a variable to be passed to make. May be passed multiple times.")
-@cli.subcommand('Compile QMK Firmware for all keyboards.', hidden=False if cli.config.user.developer else True)
+@cli.subcommand('Compile QMK Firmware for all keyboards.', hidden=not cli.config.user.developer)
 def multibuild(cli):
     """Compile QMK Firmware against all keyboards.
     """
@@ -51,11 +54,13 @@ def multibuild(cli):
     for filter_txt in cli.args.filter:
         f = filter_re.match(filter_txt)
         if f is not None:
-            keyboard_list = filter(_make_rules_mk_filter(f.group('key'), f.group('value')), keyboard_list)
+            keyboard_list = filter(
+                _make_rules_mk_filter(f['key'], f['value']), keyboard_list
+            )
 
     keyboard_list = list(sorted(keyboard_list))
 
-    if len(keyboard_list) == 0:
+    if not keyboard_list:
         return
 
     builddir.mkdir(parents=True, exist_ok=True)
@@ -84,7 +89,5 @@ all: {keyboard_safe}_binary
 
     cli.run([make_cmd, *get_make_parallel_args(cli.args.parallel), '-f', makefile.as_posix(), 'all'], capture_output=False, stdin=DEVNULL)
 
-    # Check for failures
-    failures = [f for f in builddir.glob(f'failed.log.{os.getpid()}.*')]
-    if len(failures) > 0:
+    if failures := list(builddir.glob(f'failed.log.{os.getpid()}.*')):
         return False

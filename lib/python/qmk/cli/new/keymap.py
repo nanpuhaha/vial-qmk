@@ -18,8 +18,8 @@ def new_keymap(cli):
     """Creates a new keymap for the keyboard of your choosing.
     """
     # ask for user input if keyboard or keymap was not provided in the command line
-    keyboard = cli.config.new_keymap.keyboard if cli.config.new_keymap.keyboard else input("Keyboard Name: ")
-    keymap = cli.config.new_keymap.keymap if cli.config.new_keymap.keymap else input("Keymap Name: ")
+    keyboard = cli.config.new_keymap.keyboard or input("Keyboard Name: ")
+    keymap = cli.config.new_keymap.keymap or input("Keymap Name: ")
 
     # generate keymap paths
     kb_path = Path('keyboards') / keyboard

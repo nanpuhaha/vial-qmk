@@ -34,14 +34,14 @@ usage      = 0x61
 device_interfaces = hid.enumerate(vendor_id, product_id)
 raw_hid_interfaces = [i for i in device_interfaces if i['usage_page'] == usage_page and i['usage'] == usage]
 
-if len(raw_hid_interfaces) == 0:
+if not raw_hid_interfaces:
     print('Couldnt find any interfaces')
     exit()
 
 interface = hid.device()
 interface.open_path(raw_hid_interfaces[0]['path'])
-print("Manufacturer: %s" % interface.get_manufacturer_string())
-print("Product: %s" % interface.get_product_string())
+print(f"Manufacturer: {interface.get_manufacturer_string()}")
+print(f"Product: {interface.get_product_string()}")
 time.sleep(0.05)
 while True:
     time.sleep(0.75)
@@ -54,24 +54,24 @@ while True:
     load = int(gpu.load*100)
     temp = int(gpu.temperature)
     data = [0]
-    for x in str(currFreq):
-        data.append(int(x))
+    data.extend(int(x) for x in str(currFreq))
     data.append(13)
-    for x in str(memPerc):
-        data.append(int(x))
+    data.extend(int(x) for x in str(memPerc))
     data.append(13)
-    for x in str(load):
-        data.append(int(x))
+    data.extend(int(x) for x in str(load))
     data.append(13)
-    for x in str(temp):
-        data.append(int(x))
+    data.extend(int(x) for x in str(temp))
     data.append(13)
     now_hour = datetime.datetime.now().strftime("%I")
     now_min = datetime.datetime.now().strftime("%M")
-    data.append(int(now_hour[0]))
-    data.append(int(now_hour[1]))
-    data.append(13)
-    data.append(int(now_min[0]))
-    data.append(int(now_min[1]))
-    data.append(13)
+    data.extend(
+        (
+            int(now_hour[0]),
+            int(now_hour[1]),
+            13,
+            int(now_min[0]),
+            int(now_min[1]),
+            13,
+        )
+    )
     interface.write(data)

@@ -17,9 +17,9 @@ def main():
     failed = False
     for keyboard, keymaps in keymaps.items():
         for keymap in keymaps:
-            sys.stdout.write("==> Compiling {}:{}\n".format(keyboard, keymap))
+            sys.stdout.write(f"==> Compiling {keyboard}:{keymap}\n")
             sys.stdout.flush()
-            if subprocess.call(["make", "{}:{}".format(keyboard, keymap), "-j4"]) != 0:
+            if subprocess.call(["make", f"{keyboard}:{keymap}", "-j4"]) != 0:
                 failed = True
 
     if failed:

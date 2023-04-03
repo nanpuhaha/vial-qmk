@@ -32,9 +32,9 @@ def _parse_gcc_version(version):
     m = re.match(r"(\d+)(?:\.(\d+))?(?:\.(\d+))?", version)
 
     return {
-        'major': int(m.group(1)),
-        'minor': int(m.group(2)) if m.group(2) else 0,
-        'patch': int(m.group(3)) if m.group(3) else 0,
+        'major': int(m[1]),
+        'minor': int(m[2]) if m[2] else 0,
+        'patch': int(m[3]) if m[3] else 0,
     }
 
 
@@ -108,10 +108,16 @@ def check_binaries():
 def check_binary_versions():
     """Check the versions of ESSENTIAL_BINARIES
     """
-    versions = []
-    for check in (_check_arm_gcc_version, _check_avr_gcc_version, _check_avrdude_version, _check_dfu_util_version, _check_dfu_programmer_version):
-        versions.append(check())
-    return versions
+    return [
+        check()
+        for check in (
+            _check_arm_gcc_version,
+            _check_avr_gcc_version,
+            _check_avrdude_version,
+            _check_dfu_util_version,
+            _check_dfu_programmer_version,
+        )
+    ]
 
 
 def check_submodules():

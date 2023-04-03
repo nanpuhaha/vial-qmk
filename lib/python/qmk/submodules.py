@@ -31,14 +31,16 @@ def status():
         githash, submodule = line[1:].split()[:2]
         submodules[submodule] = {'name': submodule, 'githash': githash}
 
-        if status == '-':
-            submodules[submodule]['status'] = None
+        if status == ' ':
+            submodules[submodule]['status'] = True
         elif status == '+':
             submodules[submodule]['status'] = False
-        elif status == ' ':
-            submodules[submodule]['status'] = True
+        elif status == '-':
+            submodules[submodule]['status'] = None
         else:
-            raise ValueError('Unknown `git submodule status` sha-1 prefix character: "%s"' % status)
+            raise ValueError(
+                f'Unknown `git submodule status` sha-1 prefix character: "{status}"'
+            )
 
     submodule_logs = cli.run(['git', 'submodule', '-q', 'foreach', 'git --no-pager log --pretty=format:"$sm_path%x01%h%x01%ad%x01%s%x0A" --date=iso -n1'])
     for log_line in submodule_logs.stdout.split('\n'):
@@ -79,16 +81,15 @@ def update(submodules=None):
         cli.run(git_sync_cmd, check=True)
         cli.run(git_update_cmd, check=True)
 
-    else:
-        if isinstance(submodules, str):
-            # Update only a single submodule
-            git_sync_cmd.append(submodules)
-            git_update_cmd.append(submodules)
-            cli.run(git_sync_cmd, check=True)
-            cli.run(git_update_cmd, check=True)
+    elif isinstance(submodules, str):
+        # Update only a single submodule
+        git_sync_cmd.append(submodules)
+        git_update_cmd.append(submodules)
+        cli.run(git_sync_cmd, check=True)
+        cli.run(git_update_cmd, check=True)
 
-        else:
-            # Update submodules in a list
-            for submodule in submodules:
-                cli.run([*git_sync_cmd, submodule], check=True)
-                cli.run([*git_update_cmd, submodule], check=True)
+    else:
+        # Update submodules in a list
+        for submodule in submodules:
+            cli.run([*git_sync_cmd, submodule], check=True)
+            cli.run([*git_update_cmd, submodule], check=True)

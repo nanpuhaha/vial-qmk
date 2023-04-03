@@ -130,7 +130,7 @@ def print_dotted_output(kb_info_json, prefix=''):
 def print_parsed_rules_mk(keyboard_name):
     rules = rules_mk(keyboard_name)
     for k in sorted(rules.keys()):
-        print('%s = %s' % (k, rules[k]))
+        print(f'{k} = {rules[k]}')
     return
 
 

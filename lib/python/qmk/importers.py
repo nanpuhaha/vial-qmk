@@ -28,13 +28,11 @@ def _gen_dummy_keymap(name, info_data):
     (layout_name, layout_data), *_ = info_data["layouts"].items()
     layout_length = len(layout_data["layout"])
 
-    keymap_data = {
+    return {
         "keyboard": name,
         "layout": layout_name,
-        "layers": [["KC_NO" for _ in range(0, layout_length)]],
+        "layers": [["KC_NO" for _ in range(layout_length)]],
     }
-
-    return keymap_data
 
 
 def _extract_kbfirmware_layout(kbf_data):
@@ -101,7 +99,7 @@ def import_keyboard(info_data, keymap_data=None):
     validate(info_data, 'qmk.api.keyboard.v1')
 
     # And validate some more as everything is optional
-    if not all(key in info_data for key in ['keyboard_name', 'layouts']):
+    if any(key not in info_data for key in ['keyboard_name', 'layouts']):
         raise ValueError('invalid info.json')
 
     kb_name = info_data['keyboard_name']
@@ -172,13 +170,12 @@ def import_kbfirmware(kbfirmware_data):
         }
     })
 
-    if kbf_data['keyboard.pins.num'] or kbf_data['keyboard.pins.caps'] or kbf_data['keyboard.pins.scroll']:
-        if kbf_data['keyboard.pins.num']:
-            info_data['indicators.num_lock'] = kbf_data['keyboard.pins.num']
-        if kbf_data['keyboard.pins.caps']:
-            info_data['indicators.caps_lock'] = kbf_data['keyboard.pins.caps']
-        if kbf_data['keyboard.pins.scroll']:
-            info_data['indicators.scroll_lock'] = kbf_data['keyboard.pins.scroll']
+    if kbf_data['keyboard.pins.num']:
+        info_data['indicators.num_lock'] = kbf_data['keyboard.pins.num']
+    if kbf_data['keyboard.pins.caps']:
+        info_data['indicators.caps_lock'] = kbf_data['keyboard.pins.caps']
+    if kbf_data['keyboard.pins.scroll']:
+        info_data['indicators.scroll_lock'] = kbf_data['keyboard.pins.scroll']
 
     if kbf_data['keyboard.pins.rgb']:
         info_data['rgblight.animations.all'] = True

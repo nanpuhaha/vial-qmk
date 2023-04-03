@@ -21,7 +21,9 @@ def main():
         if uid:
             break
     if not uid:
-        print("Cannot identify keyboard UID from configuration files {}, ensure that you have VIAL_KEYBOARD_UID defined!".format(configs))
+        print(
+            f"Cannot identify keyboard UID from configuration files {configs}, ensure that you have VIAL_KEYBOARD_UID defined!"
+        )
         return 1
 
     uid = uid[0].split(",")
@@ -41,7 +43,7 @@ def main():
         outf.write(firmware)
 
     print("-" * 80)
-    print("Vial update package created at {}".format(out))
+    print(f"Vial update package created at {out}")
     print("-" * 80)
 
     return 0

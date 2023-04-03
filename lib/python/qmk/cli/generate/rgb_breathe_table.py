@@ -18,7 +18,7 @@ def breathing_center(value):
 
 def breathing_max(value):
     value = int(value)
-    if value in range(0, 256):
+    if value in range(256):
         return value
     else:
         raise ArgumentTypeError('Breathing max must be between 0 and 255')
@@ -33,14 +33,14 @@ def generate_rgb_breathe_table(cli):
     """Generate a rgblight_breathe_table.h file containing a breathing LUT for RGB Lighting (Underglow) feature.
     """
     breathe_values = [0] * 256
-    for pos in range(0, 256):
+    for pos in range(256):
         breathe_values[pos] = (int)((math.exp(math.sin((pos / 255) * math.pi)) - cli.args.center / math.e) * (cli.args.max / (math.e - 1 / math.e)))
 
     values_template = ''
-    for s in range(0, 3):
+    for s in range(3):
         step = 1 << s
 
-        values_template += '#if RGBLIGHT_BREATHE_TABLE_SIZE == {}\n'.format(256 >> s)
+        values_template += f'#if RGBLIGHT_BREATHE_TABLE_SIZE == {256 >> s}\n'
 
         for pos in range(0, 256, step):
             values_template += '    ' if pos % 8 == 0 else ''
@@ -70,7 +70,7 @@ static const int table_scale = 256 / sizeof(rgblight_effect_breathe_table);
     if cli.args.output:
         cli.args.output.parent.mkdir(parents=True, exist_ok=True)
         if cli.args.output.exists():
-            cli.args.output.replace(cli.args.output.parent / (cli.args.output.name + '.bak'))
+            cli.args.output.replace(cli.args.output.parent / f'{cli.args.output.name}.bak')
         cli.args.output.write_text(table_template)
 
         if not cli.args.quiet:

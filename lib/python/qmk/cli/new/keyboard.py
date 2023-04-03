@@ -163,7 +163,13 @@ As a starting point, one of the common layouts can be used to bootstrap the proc
 
 Default Layout? """
     # avoid overwhelming user - remove some?
-    filtered_layouts = [x for x in available_layouts if not any(xs in x for xs in ['_split', '_blocker', '_tsangan', '_f13'])]
+    filtered_layouts = [
+        x
+        for x in available_layouts
+        if all(
+            xs not in x for xs in ['_split', '_blocker', '_tsangan', '_f13']
+        )
+    ]
     filtered_layouts.append("none of the above")
 
     return choice(prompt, filtered_layouts, default=len(filtered_layouts) - 1)
@@ -177,7 +183,11 @@ https://docs.qmk.fm/#/compatible_microcontrollers
 
 MCU? """
     # remove any options strictly used for compatibility
-    filtered_mcu = [x for x in (dev_boards + mcu_types) if not any(xs in x for xs in ['cortex', 'unknown'])]
+    filtered_mcu = [
+        x
+        for x in dev_boards + mcu_types
+        if all(xs not in x for xs in ['cortex', 'unknown'])
+    ]
 
     return choice(prompt, filtered_mcu, default=filtered_mcu.index("atmega32u4"))
 
@@ -194,11 +204,15 @@ def new_keyboard(cli):
     cli.log.info('{style_bright}Generating a new QMK keyboard directory{style_normal}')
     cli.echo('')
 
-    kb_name = cli.args.keyboard if cli.args.keyboard else prompt_keyboard()
-    user_name = cli.config.new_keyboard.name if cli.config.new_keyboard.name else prompt_user()
-    real_name = cli.args.realname or cli.config.new_keyboard.name if cli.args.realname or cli.config.new_keyboard.name else prompt_name(user_name)
-    default_layout = cli.args.layout if cli.args.layout else prompt_layout()
-    mcu = cli.args.type if cli.args.type else prompt_mcu()
+    kb_name = cli.args.keyboard or prompt_keyboard()
+    user_name = cli.config.new_keyboard.name or prompt_user()
+    real_name = (
+        cli.args.realname
+        or cli.config.new_keyboard.name
+        or prompt_name(user_name)
+    )
+    default_layout = cli.args.layout or prompt_layout()
+    mcu = cli.args.type or prompt_mcu()
 
     if not validate_keyboard_name(kb_name):
         cli.log.error('Keyboard names must contain only {fg_cyan}lowercase a-z{fg_reset}, {fg_cyan}0-9{fg_reset}, and {fg_cyan}_{fg_reset}! Please choose a different name.')

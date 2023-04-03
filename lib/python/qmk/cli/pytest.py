@@ -8,7 +8,7 @@ from milc import cli
 
 
 @cli.argument('-t', '--test', arg_only=True, action='append', default=[], help="Mapped to nose2 'testNames' positional argument - https://docs.nose2.io/en/latest/usage.html#specifying-tests-to-run")
-@cli.subcommand('QMK Python Unit Tests', hidden=False if cli.config.user.developer else True)
+@cli.subcommand('QMK Python Unit Tests', hidden=not cli.config.user.developer)
 def pytest(cli):
     """Run several linting/testing commands.
     """

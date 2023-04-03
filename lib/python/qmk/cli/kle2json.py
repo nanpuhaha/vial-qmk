@@ -14,7 +14,7 @@ from qmk.json_encoders import InfoJSONEncoder
 
 @cli.argument('filename', completer=FilesCompleter('.json'), help='The KLE raw txt to convert')
 @cli.argument('-f', '--force', action='store_true', help='Flag to overwrite current info.json')
-@cli.subcommand('Convert a KLE layout to a Configurator JSON', hidden=False if cli.config.user.developer else True)
+@cli.subcommand('Convert a KLE layout to a Configurator JSON', hidden=not cli.config.user.developer)
 def kle2json(cli):
     """Convert a KLE layout to QMK's layout format.
     """  # If filename is a path

@@ -10,11 +10,7 @@ from milc.subcommand import config
 def bux(cli):
     """QMK bux
     """
-    if not cli.config.user.bux:
-        bux = 0
-    else:
-        bux = cli.config.user.bux
-
+    bux = cli.config.user.bux or 0
     cli.args.read_only = False
     config.set_config('user', 'bux', bux + 1)
     cli.save_config()

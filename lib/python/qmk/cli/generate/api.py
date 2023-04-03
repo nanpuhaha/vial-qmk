@@ -22,17 +22,18 @@ def _filtered_keyboard_list():
     """
     keyboard_list = list_keyboards()
     if cli.args.filter:
-        kb_list = []
-        for keyboard_name in keyboard_list:
-            if any(i in keyboard_name for i in cli.args.filter):
-                kb_list.append(keyboard_name)
+        kb_list = [
+            keyboard_name
+            for keyboard_name in keyboard_list
+            if any(i in keyboard_name for i in cli.args.filter)
+        ]
         keyboard_list = kb_list
     return keyboard_list
 
 
 @cli.argument('-n', '--dry-run', arg_only=True, action='store_true', help="Don't write the data to disk.")
 @cli.argument('-f', '--filter', arg_only=True, action='append', default=[], help="Filter the list of keyboards based on partial name matches the supplied value. May be passed multiple times.")
-@cli.subcommand('Generate QMK API data', hidden=False if cli.config.user.developer else True)
+@cli.subcommand('Generate QMK API data', hidden=not cli.config.user.developer)
 def generate_api(cli):
     """Generates the QMK API data.
     """

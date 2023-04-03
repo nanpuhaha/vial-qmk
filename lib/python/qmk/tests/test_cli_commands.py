@@ -8,8 +8,7 @@ is_windows = 'windows' in platform.platform().lower()
 
 def check_subcommand(command, *args):
     cmd = ['qmk', command, *args]
-    result = cli.run(cmd, stdin=DEVNULL, combined_output=True)
-    return result
+    return cli.run(cmd, stdin=DEVNULL, combined_output=True)
 
 
 def check_subcommand_stdin(file_to_read, command, *args):
@@ -25,7 +24,7 @@ def check_returncode(result, expected=[0]):
     """Print stdout if `result.returncode` does not match `expected`.
     """
     if result.returncode not in expected:
-        print('`%s` stdout:' % ' '.join(result.args))
+        print(f"`{' '.join(result.args)}` stdout:")
         print(result.stdout)
         print('returncode:', result.returncode)
     assert result.returncode in expected

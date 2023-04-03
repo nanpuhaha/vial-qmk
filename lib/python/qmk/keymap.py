@@ -41,10 +41,10 @@ def template_json(keyboard):
         keyboard
             The keyboard to return a template for.
     """
-    template_file = Path('keyboards/%s/templates/keymap.json' % keyboard)
+    template_file = Path(f'keyboards/{keyboard}/templates/keymap.json')
     template = {'keyboard': keyboard}
     if template_file.exists():
-        template.update(json.load(template_file.open(encoding='utf-8')))
+        template |= json.load(template_file.open(encoding='utf-8'))
 
     return template
 
@@ -58,13 +58,12 @@ def template_c(keyboard):
         keyboard
             The keyboard to return a template for.
     """
-    template_file = Path('keyboards/%s/templates/keymap.c' % keyboard)
-    if template_file.exists():
-        template = template_file.read_text(encoding='utf-8')
-    else:
-        template = DEFAULT_KEYMAP_C
-
-    return template
+    template_file = Path(f'keyboards/{keyboard}/templates/keymap.c')
+    return (
+        template_file.read_text(encoding='utf-8')
+        if template_file.exists()
+        else DEFAULT_KEYMAP_C
+    )
 
 
 def _strip_any(keycode):
@@ -112,9 +111,7 @@ def keymap_completer(prefix, action, parser, parsed_args):
         if parsed_args.keyboard:
             return list_keymaps(parsed_args.keyboard)
 
-        keyboard = find_keyboard_from_dir()
-
-        if keyboard:
+        if keyboard := find_keyboard_from_dir():
             return list_keymaps(keyboard)
 
     except Exception as e:
@@ -209,7 +206,7 @@ def generate_c(keymap_json):
 
     for layer_num, layer in enumerate(keymap_json['layers']):
         if layer_num != 0:
-            layer_txt[-1] = layer_txt[-1] + ','
+            layer_txt[-1] = f'{layer_txt[-1]},'
         layer = map(_strip_any, layer)
         layer_keys = ', '.join(layer)
         layer_txt.append('\t[%s] = %s(%s)' % (layer_num, keymap_json['layout'], layer_keys))
@@ -250,32 +247,33 @@ def generate_c(keymap_json):
                     elif macro_fragment['action'] == 'tap' and len(macro_fragment['keycodes']) > 1:
                         last_keycode = macro_fragment['keycodes'].pop()
 
-                        for keycode in macro_fragment['keycodes']:
-                            newstring.append(f'SS_DOWN(X_{keycode})')
-
+                        newstring.extend(
+                            f'SS_DOWN(X_{keycode})'
+                            for keycode in macro_fragment['keycodes']
+                        )
                         newstring.append(f'SS_TAP(X_{last_keycode})')
 
-                        for keycode in reversed(macro_fragment['keycodes']):
-                            newstring.append(f'SS_UP(X_{keycode})')
-
+                        newstring.extend(
+                            f'SS_UP(X_{keycode})'
+                            for keycode in reversed(macro_fragment['keycodes'])
+                        )
                     else:
-                        for keycode in macro_fragment['keycodes']:
-                            newstring.append(f"SS_{macro_fragment['action'].upper()}(X_{keycode})")
-
+                        newstring.extend(
+                            f"SS_{macro_fragment['action'].upper()}(X_{keycode})"
+                            for keycode in macro_fragment['keycodes']
+                        )
                     macro.append(''.join(newstring))
 
             new_macro = "".join(macro)
             new_macro = new_macro.replace('""', '')
-            macro_txt.append(f'            case MACRO_{i}:')
-            macro_txt.append(f'                SEND_STRING({new_macro});')
-            macro_txt.append('                return false;')
-
-        macro_txt.append('        }')
-        macro_txt.append('    }')
-        macro_txt.append('\n    return true;')
-        macro_txt.append('};')
-        macro_txt.append('')
-
+            macro_txt.extend(
+                (
+                    f'            case MACRO_{i}:',
+                    f'                SEND_STRING({new_macro});',
+                    '                return false;',
+                )
+            )
+        macro_txt.extend(('        }', '    }', '\n    return true;', '};', ''))
         new_keymap = '\n'.join((new_keymap, *macro_txt))
 
     if keymap_json.get('host_language'):
@@ -351,18 +349,14 @@ def locate_keymap(keyboard, keymap):
     """Returns the path to a keymap for a specific keyboard.
     """
     if not qmk.path.is_keyboard(keyboard):
-        raise KeyError('Invalid keyboard: ' + repr(keyboard))
+        raise KeyError(f'Invalid keyboard: {repr(keyboard)}')
 
     # Check the keyboard folder first, last match wins
     checked_dirs = ''
     keymap_path = ''
 
     for dir in keyboard_folder(keyboard).split('/'):
-        if checked_dirs:
-            checked_dirs = '/'.join((checked_dirs, dir))
-        else:
-            checked_dirs = dir
-
+        checked_dirs = '/'.join((checked_dirs, dir)) if checked_dirs else dir
         keymap_dir = Path('keyboards') / checked_dirs / 'keymaps'
 
         if (keymap_dir / keymap / 'keymap.c').exists():
@@ -461,7 +455,7 @@ def _c_preprocess(path, stdin=DEVNULL):
     return pre_processed_keymap.stdout
 
 
-def _get_layers(keymap):  # noqa C901 : until someone has a good idea how to simplify/split up this code
+def _get_layers(keymap):    # noqa C901 : until someone has a good idea how to simplify/split up this code
     """ Find the layers in a keymap.c file.
 
     Args:
@@ -470,12 +464,12 @@ def _get_layers(keymap):  # noqa C901 : until someone has a good idea how to sim
     Returns:
         a dictionary containing the parsed keymap
     """
-    layers = list()
+    layers = []
     opening_braces = '({['
     closing_braces = ')}]'
     keymap_certainty = brace_depth = 0
     is_keymap = is_layer = is_adv_kc = False
-    layer = dict(name=False, layout=False, keycodes=list())
+    layer = dict(name=False, layout=False, keycodes=[])
     for line in lex(keymap, CLexer()):
         if line[0] is Token.Name:
             if is_keymap:
@@ -554,7 +548,7 @@ def _get_layers(keymap):  # noqa C901 : until someone has a good idea how to sim
                         # We found the end of a layer
                         is_layer = False
                         layers.append(layer)
-                        layer = dict(name=False, layout=False, keycodes=list())
+                        layer = dict(name=False, layout=False, keycodes=[])
                     elif line[1] == '}' and brace_depth == 0:
                         # We found the end of the keymaps array
                         is_keymap = False
@@ -570,13 +564,8 @@ def _get_layers(keymap):  # noqa C901 : until someone has a good idea how to sim
             if not layer['name']:
                 layer['name'] = line[1]
 
-        else:
-            # We only care about
-            # operators and such if we
-            # are inside an advanced keycode
-            # e.g.: MT(MOD_LCTL | MOD_LSFT, KC_ESC)
-            if is_adv_kc:
-                layer['keycodes'][-1] += line[1]
+        elif is_adv_kc:
+            layer['keycodes'][-1] += line[1]
 
     return layers
 
@@ -595,19 +584,13 @@ def parse_keymap_c(keymap_file, use_cpp=True):
         a dictionary containing the parsed keymap
     """
     if keymap_file == '-':
-        if use_cpp:
-            keymap_file = _c_preprocess(None, sys.stdin)
-        else:
-            keymap_file = sys.stdin.read()
+        keymap_file = _c_preprocess(None, sys.stdin) if use_cpp else sys.stdin.read()
+    elif use_cpp:
+        keymap_file = _c_preprocess(keymap_file)
     else:
-        if use_cpp:
-            keymap_file = _c_preprocess(keymap_file)
-        else:
-            keymap_file = keymap_file.read_text(encoding='utf-8')
+        keymap_file = keymap_file.read_text(encoding='utf-8')
 
-    keymap = dict()
-    keymap['layers'] = _get_layers(keymap_file)
-    return keymap
+    return {'layers': _get_layers(keymap_file)}
 
 
 def c2json(keyboard, keymap, keymap_file, use_cpp=True):
@@ -630,7 +613,7 @@ def c2json(keyboard, keymap, keymap_file, use_cpp=True):
     keymap_json = parse_keymap_c(keymap_file, use_cpp)
 
     dirty_layers = keymap_json.pop('layers', None)
-    keymap_json['layers'] = list()
+    keymap_json['layers'] = []
     for layer in dirty_layers:
         layer.pop('name')
         layout = layer.pop('layout')

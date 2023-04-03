@@ -49,30 +49,26 @@ def collect_defines(filepath):
         defines = {"keys": [], "dict": {}}
         for define_match in define_matches:
             value_match = value_search.search(define_match)
-            defines["keys"].append(value_match.group("name"))
-            defines["dict"][value_match.group("name")] = value_match.group("value")
+            defines["keys"].append(value_match["name"])
+            defines["dict"][value_match["name"]] = value_match["value"]
         return defines
 
 
 def check_diffs(input_defs, reference_defs):
     not_present_in_input = []
     not_present_in_reference = []
-    to_override = []
-
-    for key in reference_defs["keys"]:
-        if key not in input_defs["dict"]:
-            not_present_in_input.append(key)
-            continue
-
-    for key in input_defs["keys"]:
-        if key not in input_defs["dict"]:
-            not_present_in_input.append(key)
-            continue
-
-    for key in input_defs["keys"]:
-        if key in reference_defs["keys"] and input_defs["dict"][key] != reference_defs["dict"][key]:
-            to_override.append((key, input_defs["dict"][key]))
-
+    not_present_in_input.extend(
+        key for key in reference_defs["keys"] if key not in input_defs["dict"]
+    )
+    not_present_in_input.extend(
+        key for key in input_defs["keys"] if key not in input_defs["dict"]
+    )
+    to_override = [
+        (key, input_defs["dict"][key])
+        for key in input_defs["keys"]
+        if key in reference_defs["keys"]
+        and input_defs["dict"][key] != reference_defs["dict"][key]
+    ]
     return (to_override, not_present_in_input, not_present_in_reference)
 
 
@@ -80,7 +76,7 @@ def migrate_chconf_h(to_override, outfile):
     print(file_header.format(cli.args.input.relative_to(QMK_FIRMWARE), cli.args.reference.relative_to(QMK_FIRMWARE)), file=outfile)
 
     for override in to_override:
-        print("#define %s %s" % (override[0], override[1]), file=outfile)
+        print(f"#define {override[0]} {override[1]}", file=outfile)
         print("", file=outfile)
 
     print("#include_next <chconf.h>\n", file=outfile)
@@ -90,7 +86,7 @@ def migrate_halconf_h(to_override, outfile):
     print(file_header.format(cli.args.input.relative_to(QMK_FIRMWARE), cli.args.reference.relative_to(QMK_FIRMWARE)), file=outfile)
 
     for override in to_override:
-        print("#define %s %s" % (override[0], override[1]), file=outfile)
+        print(f"#define {override[0]} {override[1]}", file=outfile)
         print("", file=outfile)
 
     print("#include_next <halconf.h>\n", file=outfile)
@@ -102,8 +98,8 @@ def migrate_mcuconf_h(to_override, outfile):
     print("#include_next <mcuconf.h>\n", file=outfile)
 
     for override in to_override:
-        print("#undef %s" % (override[0]), file=outfile)
-        print("#define %s %s" % (override[0], override[1]), file=outfile)
+        print(f"#undef {override[0]}", file=outfile)
+        print(f"#define {override[0]} {override[1]}", file=outfile)
         print("", file=outfile)
 
 
@@ -125,12 +121,12 @@ def chibios_confmigrate(cli):
     if len(not_present_in_input) > 0:
         eprint("Keys not in input, but present inside reference (potential manual migration required):")
         for key in not_present_in_input:
-            eprint("   %s" % (key))
+            eprint(f"   {key}")
 
     if len(not_present_in_reference) > 0:
         eprint("Keys not in reference, but present inside input (potential manual migration required):")
         for key in not_present_in_reference:
-            eprint("   %s" % (key))
+            eprint(f"   {key}")
 
     if len(to_override) == 0:
         eprint('No overrides found! If there were no missing keys above, it should be safe to delete the input file.')

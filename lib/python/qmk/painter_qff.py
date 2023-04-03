@@ -217,14 +217,12 @@ class QFFFont:
         # Work out the geometry
         (width, height) = img.size
 
-        # Work out the glyph offsets/widths
-        glyph_pixel_offsets = []
         glyph_pixel_widths = []
         pixels = img.load()
 
         # Run through the markers and work out where each glyph starts/stops
         glyph_split_color = pixels[0, 0]  # top left pixel is the marker color we're going to use to split each glyph
-        glyph_pixel_offsets.append(0)
+        glyph_pixel_offsets = [0]
         last_offset = 0
         for x in range(1, width):
             if pixels[x, 0] == glyph_split_color:
@@ -239,7 +237,7 @@ class QFFFont:
             return
 
         # Set up the required metadata for each glyph
-        for n in range(0, len(glyph_pixel_offsets)):
+        for n in range(len(glyph_pixel_offsets)):
             self.glyph_data[glyphs[n]] = QFFGlyphInfo(code_point=glyphs[n], x=glyph_pixel_offsets[n], w=glyph_pixel_widths[n])
 
         # Parsing was successful, keep the image in this instance
@@ -248,7 +246,7 @@ class QFFFont:
 
     def generate_image(self, ttf_file: Path, font_size: int, include_ascii_glyphs: bool = True, unicode_glyphs: str = '', include_before_left: bool = False, use_aa: bool = True):
         # Load the font
-        font = ImageFont.truetype(str(ttf_file), int(font_size))
+        font = ImageFont.truetype(str(ttf_file), font_size)
         # Work out the max font size
         max_font_size = font.font.ascent + abs(font.font.descent)
         # Work out the list of glyphs required
@@ -263,12 +261,9 @@ class QFFFont:
             (ls_l, ls_t, ls_r, ls_b) = font.getbbox(glyph, anchor='ls')
             glyph_width = (ls_r - ls_l) if include_before_left else (ls_r)
             glyph_height = font.getbbox(glyph, anchor='la')[3]
-            if max_glyph_height < glyph_height:
-                max_glyph_height = glyph_height
+            max_glyph_height = max(max_glyph_height, glyph_height)
             total_glyph_width += glyph_width
-            if baseline_offset > ls_t:
-                baseline_offset = ls_t
-
+            baseline_offset = min(baseline_offset, ls_t)
         # Create the output image
         img = Image.new("RGB", (total_glyph_width + 1, max_font_size * 2 + 1), (0, 0, 0, 255))
         cur_x_pos = 0
@@ -350,7 +345,9 @@ class QFFFont:
         data_descriptor.data = img_buffer
 
         # Check if we have all the ASCII glyphs present
-        include_ascii_glyphs = all([chr(n) in self.glyph_data for n in range(0x20, 0x7F)])
+        include_ascii_glyphs = all(
+            chr(n) in self.glyph_data for n in range(0x20, 0x7F)
+        )
 
         # Helper for populating the blocks
         for code_point, glyph_entry in self.glyph_data.items():

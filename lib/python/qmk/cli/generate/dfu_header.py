@@ -32,10 +32,13 @@ def generate_dfu_header(cli):
     # Build the Keyboard.h file.
     kb_info_json = dotty(info_json(cli.config.generate_dfu_header.keyboard))
 
-    keyboard_h_lines = [GPL2_HEADER_C_LIKE, GENERATED_HEADER_C_LIKE, '#pragma once']
-    keyboard_h_lines.append(f'#define MANUFACTURER "{kb_info_json["manufacturer"]}"')
-    keyboard_h_lines.append(f'#define PRODUCT "{kb_info_json["keyboard_name"]} Bootloader"')
-
+    keyboard_h_lines = [
+        GPL2_HEADER_C_LIKE,
+        GENERATED_HEADER_C_LIKE,
+        '#pragma once',
+        f'#define MANUFACTURER "{kb_info_json["manufacturer"]}"',
+        f'#define PRODUCT "{kb_info_json["keyboard_name"]} Bootloader"',
+    ]
     # Optional
     if 'qmk_lufa_bootloader.esc_output' in kb_info_json:
         keyboard_h_lines.append(f'#define QMK_ESC_OUTPUT {kb_info_json["qmk_lufa_bootloader.esc_output"]}')

@@ -59,9 +59,9 @@ def generate_rules_mk(cli):
 
     # Iterate through the info_rules map to generate basic rules
     for rules_key, info_dict in info_rules_map.items():
-        new_entry = process_mapping_rule(kb_info_json, rules_key, info_dict)
-
-        if new_entry:
+        if new_entry := process_mapping_rule(
+            kb_info_json, rules_key, info_dict
+        ):
             rules_mk_lines.append(new_entry)
 
     # Iterate through features to enable/disable them

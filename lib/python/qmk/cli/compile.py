@@ -31,10 +31,15 @@ def compile(cli):
 
     If a keyboard and keymap are provided this command will build a firmware based on that.
     """
-    if cli.args.clean and not cli.args.filename and not cli.args.dry_run:
-        if cli.config.compile.keyboard and cli.config.compile.keymap:
-            command = create_make_command(cli.config.compile.keyboard, cli.config.compile.keymap, 'clean')
-            cli.run(command, capture_output=False, stdin=DEVNULL)
+    if (
+        cli.args.clean
+        and not cli.args.filename
+        and not cli.args.dry_run
+        and cli.config.compile.keyboard
+        and cli.config.compile.keymap
+    ):
+        command = create_make_command(cli.config.compile.keyboard, cli.config.compile.keymap, 'clean')
+        cli.run(command, capture_output=False, stdin=DEVNULL)
 
     # Build the environment vars
     envs = {}
@@ -53,15 +58,14 @@ def compile(cli):
         user_keymap = parse_configurator_json(cli.args.filename)
         command = compile_configurator_json(user_keymap, parallel=cli.config.compile.parallel, **envs)
 
-    else:
-        if cli.config.compile.keyboard and cli.config.compile.keymap:
-            # Generate the make command for a specific keyboard/keymap.
-            command = create_make_command(cli.config.compile.keyboard, cli.config.compile.keymap, parallel=cli.config.compile.parallel, **envs)
+    elif cli.config.compile.keyboard and cli.config.compile.keymap:
+        # Generate the make command for a specific keyboard/keymap.
+        command = create_make_command(cli.config.compile.keyboard, cli.config.compile.keymap, parallel=cli.config.compile.parallel, **envs)
 
-        elif not cli.config.compile.keyboard:
-            cli.log.error('Could not determine keyboard!')
-        elif not cli.config.compile.keymap:
-            cli.log.error('Could not determine keymap!')
+    elif not cli.config.compile.keyboard:
+        cli.log.error('Could not determine keyboard!')
+    else:
+        cli.log.error('Could not determine keymap!')
 
     # Compile the firmware, if we're able to
     if command:

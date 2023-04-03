@@ -130,7 +130,9 @@ def parse_config_h_file(config_h_file, config_h=None):
 
             if line[0] == '#define':
                 if len(line) == 1:
-                    cli.log.error('%s: Incomplete #define! On or around line %s' % (config_h_file, linenum))
+                    cli.log.error(
+                        f'{config_h_file}: Incomplete #define! On or around line {linenum}'
+                    )
                 elif len(line) == 2:
                     config_h[line[1]] = True
                 else:
@@ -144,7 +146,9 @@ def parse_config_h_file(config_h_file, config_h=None):
                         else:
                             config_h[line[1]] = False
                 else:
-                    cli.log.error('%s: Incomplete #undef! On or around line %s' % (config_h_file, linenum))
+                    cli.log.error(
+                        f'{config_h_file}: Incomplete #undef! On or around line {linenum}'
+                    )
 
     return config_h
 
@@ -207,13 +211,13 @@ def _coerce_led_token(_type, value):
         return float(value)
     if _type is Token.Literal.Number.Hex:
         return int(value, 0)
-    if _type is Token.Name and value in value_map.keys():
+    if _type is Token.Name and value in value_map:
         return value_map[value]
 
 
 def _validate_led_config(matrix, matrix_rows, matrix_indexes, position, position_raw, flags):
     # TODO: Improve crude parsing/validation
-    if len(matrix) != matrix_rows and len(matrix) != (matrix_rows / 2):
+    if len(matrix) not in [matrix_rows, matrix_rows / 2]:
         raise ValueError("Unable to parse g_led_config matrix data")
     if len(position) != len(flags):
         raise ValueError("Unable to parse g_led_config position data")
@@ -249,18 +253,16 @@ def _parse_led_config(file, matrix_cols, matrix_rows):
                     section += 1
             elif value == '}':
                 bracket_count -= 1
-            else:
-                # Assume any non whitespace value here is important enough to stash
-                if _type in [Token.Literal.Number.Integer, Token.Literal.Number.Float, Token.Literal.Number.Hex, Token.Name]:
-                    if section == 1 and bracket_count == 3:
-                        matrix_raw.append(_coerce_led_token(_type, value))
-                    if section == 2 and bracket_count == 3:
-                        position_raw.append(_coerce_led_token(_type, value))
-                    if section == 3 and bracket_count == 2:
-                        flags.append(_coerce_led_token(_type, value))
-                elif _type in [Token.Comment.Preproc]:
-                    # TODO: Promote to error
-                    return None
+            elif _type in [Token.Literal.Number.Integer, Token.Literal.Number.Float, Token.Literal.Number.Hex, Token.Name]:
+                if section == 1 and bracket_count == 3:
+                    matrix_raw.append(_coerce_led_token(_type, value))
+                if section == 2 and bracket_count == 3:
+                    position_raw.append(_coerce_led_token(_type, value))
+                if section == 3 and bracket_count == 2:
+                    flags.append(_coerce_led_token(_type, value))
+            elif _type in [Token.Comment.Preproc]:
+                # TODO: Promote to error
+                return None
 
     # Slightly better intrim format
     matrix = list(_get_chunks(matrix_raw, matrix_cols))
@@ -287,14 +289,14 @@ def find_led_config(file, matrix_cols, matrix_rows):
     # Expand collected content
     (matrix, position, flags) = found
 
-    # Align to output format
-    led_config = []
-    for index, item in enumerate(position, start=0):
-        led_config.append({
+    led_config = [
+        {
             'x': item[0],
             'y': item[1],
             'flags': flags[index],
-        })
+        }
+        for index, item in enumerate(position, start=0)
+    ]
     for r in range(len(matrix)):
         for c in range(len(matrix[r])):
             index = matrix[r][c]

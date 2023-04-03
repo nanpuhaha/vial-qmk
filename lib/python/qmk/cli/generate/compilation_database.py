@@ -28,12 +28,11 @@ def system_libs(binary: str) -> List[Path]:
     if binary.endswith("gcc") or binary.endswith("g++"):
         # (TODO): Remove 'stdin' once 'input' no longer causes issues under MSYS
         result = cli.run([binary, '-E', '-Wp,-v', '-'], capture_output=True, check=True, stdin=None, input='\n')
-        paths = []
-        for line in result.stderr.splitlines():
-            if line.startswith(" "):
-                paths.append(Path(line.strip()).resolve())
-        return paths
-
+        return [
+            Path(line.strip()).resolve()
+            for line in result.stderr.splitlines()
+            if line.startswith(" ")
+        ]
     return list(Path(bin_path).resolve().parent.parent.glob("*/include")) if bin_path else []
 
 
@@ -53,20 +52,18 @@ def parse_make_n(f: Iterator[str]) -> List[Dict[str, str]]:
     records = []
     for line in f:
         if state == 'start':
-            m = file_re.search(line)
-            if m:
+            if m := file_re.search(line):
                 this_file = m.group(1)
                 state = 'cmd'
 
         if state == 'cmd':
             assert this_file
-            m = cmd_re.search(line)
-            if m:
+            if m := cmd_re.search(line):
                 # we have a hit!
                 this_cmd = m.group(1)
                 args = shlex.split(this_cmd)
                 for s in system_libs(args[0]):
-                    args += ['-isystem', '%s' % s]
+                    args += ['-isystem', f'{s}']
                 new_cmd = ' '.join(shlex.quote(s) for s in args if s != '-mno-thumb-interwork')
                 records.append({"directory": str(QMK_FIRMWARE.resolve()), "command": new_cmd, "file": this_file})
                 state = 'start'
@@ -99,7 +96,7 @@ def generate_compilation_database(cli: MILC) -> Union[bool, int]:
         command = create_make_command(current_keyboard, current_keymap, dry_run=True)
     elif not current_keyboard:
         cli.log.error('Could not determine keyboard!')
-    elif not current_keymap:
+    else:
         cli.log.error('Could not determine keymap!')
 
     if not command:

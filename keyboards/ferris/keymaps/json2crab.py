@@ -13,11 +13,7 @@ def parse_cli():
     return parser.parse_args()
 
 def col_index(key_index):
-    if key_index < 30:
-        col = key_index % 5
-    else:
-        col = key_index % 2
-    return col
+    return key_index % 5 if key_index < 30 else key_index % 2
 
 def format_layers(layers):
     formatted = indent_level * " " + "\"layers\": [\n"
@@ -27,7 +23,7 @@ def format_layers(layers):
             col = col_index(index)
             max_length = max_key_length.get(col)
             if (not max_length) or len(keycode) > max_length:
-                max_key_length.update({col: len(keycode)})
+                max_key_length[col] = len(keycode)
     for (layer_index, layer) in enumerate(layers):
         formatted += 2 * indent_level * " "
         formatted += "["
@@ -46,10 +42,7 @@ def format_layers(layers):
             if index % 10 == 9:
                 formatted += "\n"
         formatted += 2 * indent_level * " "
-        if layer_index < len(layers) - 1:
-            formatted += "],\n"
-        else:
-            formatted += "]\n"
+        formatted += "],\n" if layer_index < len(layers) - 1 else "]\n"
     formatted += indent_level * " "
     formatted += "]"
 

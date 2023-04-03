@@ -15,7 +15,7 @@ from qmk.path import normpath
 
 @cli.argument('json_file', arg_only=True, type=normpath, help='JSON file to format')
 @cli.argument('-f', '--format', choices=['auto', 'keyboard', 'keymap'], default='auto', arg_only=True, help='JSON formatter to use (Default: autodetect)')
-@cli.subcommand('Generate an info.json file for a keyboard.', hidden=False if cli.config.user.developer else True)
+@cli.subcommand('Generate an info.json file for a keyboard.', hidden=not cli.config.user.developer)
 def format_json(cli):
     """Format a json file.
     """

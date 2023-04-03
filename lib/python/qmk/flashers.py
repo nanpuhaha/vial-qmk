@@ -50,10 +50,7 @@ def _check_dfu_programmer_version():
     first_line = check.stdout.split('\n')[0]
     version_number = first_line.split()[1]
     maj, min_, bug = version_number.split('.')
-    if int(maj) >= 0 and int(min_) >= 7:
-        return True
-    else:
-        return False
+    return int(maj) >= 0 and int(min_) >= 7
 
 
 def _find_bootloader():
@@ -75,11 +72,13 @@ def _find_bootloader():
                     elif bl == 'caterina':
                         details = (vid_hex, pid_hex)
                     elif bl == 'hid-bootloader':
-                        if vid == '16c0' and pid == '0478':
-                            details = 'halfkay'
-                        else:
-                            details = 'qmk-hid'
-                    elif bl == 'stm32-dfu' or bl == 'apm32-dfu' or bl == 'gd32v-dfu' or bl == 'kiibohd':
+                        details = 'halfkay' if vid == '16c0' and pid == '0478' else 'qmk-hid'
+                    elif bl in [
+                        'stm32-dfu',
+                        'apm32-dfu',
+                        'gd32v-dfu',
+                        'kiibohd',
+                    ]:
                         details = (vid, pid)
                     else:
                         details = None
@@ -118,8 +117,7 @@ def _find_serial_port(vid, pid):
 
 
 def _flash_caterina(details, file):
-    port = _find_serial_port(details[0], details[1])
-    if port:
+    if port := _find_serial_port(details[0], details[1]):
         cli.run(['avrdude', '-p', 'atmega32u4', '-c', 'avr109', '-U', f'flash:w:{file}:i', '-P', port], capture_output=False)
         return False
     else:
@@ -183,14 +181,13 @@ def flasher(mcu, file):
         if _flash_caterina(details, file.name):
             return (True, "The Caterina bootloader was found but is not writable. Check 'qmk doctor' output for advice.")
     elif bl == 'hid-bootloader':
-        if mcu:
-            if _flash_hid_bootloader(mcu, details, file.name):
-                return (True, "Please make sure 'teensy_loader_cli' or 'hid_bootloader_cli' is available on your system.")
-        else:
+        if not mcu:
             return (True, "Specifying the MCU with '-m' is necessary for HalfKay/HID bootloaders!")
-    elif bl == 'stm32-dfu' or bl == 'apm32-dfu' or bl == 'gd32v-dfu' or bl == 'kiibohd':
+        if _flash_hid_bootloader(mcu, details, file.name):
+            return (True, "Please make sure 'teensy_loader_cli' or 'hid_bootloader_cli' is available on your system.")
+    elif bl in ['stm32-dfu', 'apm32-dfu', 'gd32v-dfu', 'kiibohd']:
         _flash_dfu_util(details, file.name)
-    elif bl == 'usbasploader' or bl == 'usbtinyisp':
+    elif bl in ['usbasploader', 'usbtinyisp']:
         if mcu:
             _flash_isp(mcu, bl, file.name)
         else:

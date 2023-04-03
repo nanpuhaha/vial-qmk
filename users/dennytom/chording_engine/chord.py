@@ -13,7 +13,7 @@ def top_level_split(s):
     balance = 0
     parts = []
     part = ""
-    
+
     for i in range(len(s)):
         c = s[i]
         part += c
@@ -21,24 +21,41 @@ def top_level_split(s):
             balance += 1
         elif c == ')':
             balance -= 1
-        elif c == ',' and balance == 0 and not s[i+1] == ',':
+        elif c == ',' and balance == 0 and s[i + 1] != ',':
             part = part[:-1].strip()
             parts.append(part)
             part = ""
-    
+
     # Capture last part
     if len(part):
         parts.append(part.strip())
-    
+
     return parts
 
 def new_chord(on_pseudolayer, keycodes_hash, has_counter, value1, value2, function, output_buffer, index):
     counter_link = "NULL"
-    output_buffer += "uint8_t state_" + str(index) + " = IDLE;\n"
+    output_buffer += f"uint8_t state_{str(index)}" + " = IDLE;\n"
     if has_counter:
-        output_buffer += "uint8_t counter_" + str(index) + " = 0;\n"
-        counter_link = "&counter_" + str(index)
-    output_buffer += "const struct Chord chord_" + str(index) + " PROGMEM = {" + keycodes_hash + ", " + on_pseudolayer + ", &state_" + str(index) + ", " + counter_link + ", " + str(value1) + ", " + str(value2) + ", " + function + "};\n"
+        output_buffer += f"uint8_t counter_{str(index)}" + " = 0;\n"
+        counter_link = f"&counter_{str(index)}"
+    output_buffer += (
+        f"const struct Chord chord_{str(index)}"
+        + " PROGMEM = {"
+        + keycodes_hash
+        + ", "
+        + on_pseudolayer
+        + ", &state_"
+        + str(index)
+        + ", "
+        + counter_link
+        + ", "
+        + str(value1)
+        + ", "
+        + str(value2)
+        + ", "
+        + function
+        + "};\n"
+    )
     index += 1
     return [output_buffer, index]
 
@@ -155,8 +172,6 @@ def expand_keycode_fnc(DEFINITION):
         DEFINITION = "RIGHT_CURLY_BRACE"
     elif DEFINITION == "?":
         DEFINITION = "QUESTION"
-    elif DEFINITION == "~":
-        DEFINITION = "TILDE"
     elif DEFINITION == ":":
         DEFINITION = "COLON"
     elif DEFINITION == "_":
@@ -179,7 +194,7 @@ def expand_keycode_fnc(DEFINITION):
         DEFINITION = "AMPERSAND"
     elif DEFINITION == "|":
         DEFINITION = "PIPE"
-    
+
     if DEFINITION in [
         "A", "a", "B", "b", "C", "c", "D", "d", "E", "e",
         "F", "f", "G", "g", "H", "h", "I", "i", "J", "j",
@@ -249,53 +264,66 @@ def expand_keycode_fnc(DEFINITION):
         "KC_MS_ACCEL0", "ACL0", "KC_MS_ACCEL1", "ACL1",
         "KC_MS_ACCEL2", "ACL2"
         ]:
-        return "KC_" + DEFINITION
+        return f"KC_{DEFINITION}"
     else:
         return DEFINITION
 
 def MK(on_pseudolayer, keycodes_hash, definition, output_buffer, index):
     l = len(definition.split(', '))
-    output_buffer += "void function_" + str(index) + "(const struct Chord* self) {\n"
+    output_buffer += (
+        f"void function_{str(index)}" + "(const struct Chord* self) {\n"
+    )
     output_buffer += "    switch (*self->state) {\n"
     output_buffer += "        case ACTIVATED:\n"
-    for i in range(0, l):
+    for i in range(l):
         val = definition.split(',')[i].strip()
         code = expand_keycode_fnc(val)
-        output_buffer += "            key_in(" + code + ");\n"
+        output_buffer += f"            key_in({code}" + ");\n"
     output_buffer += "            break;\n"
     output_buffer += "        case DEACTIVATED:\n"
-    for i in range(0, l):
+    for i in range(l):
         val = definition.split(',')[i].strip()
         code = expand_keycode_fnc(val)
-        output_buffer += "            key_out(" + code + ");\n"
+        output_buffer += f"            key_out({code}" + ");\n"
     output_buffer += "            *self->state = IDLE;\n"
     output_buffer += "            break;\n"
     output_buffer += "        case RESTART:\n"
-    for i in range(0, l):
+    for i in range(l):
         val = definition.split(',')[i].strip()
         code = expand_keycode_fnc(val)
-        output_buffer += "            key_out(" + code + ");\n"
+        output_buffer += f"            key_out({code}" + ");\n"
     output_buffer += "            break;\n"
     output_buffer += "        default:\n"
     output_buffer += "            break;\n"
     output_buffer += "    };\n"
     output_buffer += "}\n"
-    return new_chord(on_pseudolayer, keycodes_hash, True, 0, 0, "function_" + str(index), output_buffer, index)
+    return new_chord(
+        on_pseudolayer,
+        keycodes_hash,
+        True,
+        0,
+        0,
+        f"function_{str(index)}",
+        output_buffer,
+        index,
+    )
 
 def D(on_pseudolayer, keycodes_hash, DEFINITION, output_buffer, index):
     l = len(DEFINITION.split(','))
-    output_buffer += "void function_" + str(index) + "(const struct Chord* self) {\n"
+    output_buffer += (
+        f"void function_{str(index)}" + "(const struct Chord* self) {\n"
+    )
     output_buffer += "    switch (*self->state) {\n"
     output_buffer += "        case ACTIVATED:\n"
     output_buffer += "            *self->counter = *self->counter + 1;\n"
     output_buffer += "            break;\n"
     output_buffer += "        case PRESS_FROM_ACTIVE:\n"
     output_buffer += "            switch (*self->counter) {\n"
-    for i in range(0, l):
+    for i in range(l):
         val = DEFINITION.split(',')[i].strip()
         code = expand_keycode_fnc(val)
-        output_buffer += "                case " + str(i + 1) + ":\n"
-        output_buffer += "                    key_in( " + code + ");\n"
+        output_buffer += f"                case {str(i + 1)}" + ":\n"
+        output_buffer += f"                    key_in( {code}" + ");\n"
         output_buffer += "                    break;\n"
     output_buffer += "                default:\n"
     output_buffer += "                    break;\n"
@@ -304,11 +332,11 @@ def D(on_pseudolayer, keycodes_hash, DEFINITION, output_buffer, index):
     output_buffer += "            break;\n"
     output_buffer += "        case FINISHED:\n"
     output_buffer += "            switch (*self->counter) {\n"
-    for i in range(0, l):
+    for i in range(l):
         val = DEFINITION.split(',')[i].strip()
         code = expand_keycode_fnc(val)
-        output_buffer += "                case " + str(i + 1) + ":\n"
-        output_buffer += "                    tap_key( " + code + ");\n"
+        output_buffer += f"                case {str(i + 1)}" + ":\n"
+        output_buffer += f"                    tap_key( {code}" + ");\n"
         output_buffer += "                    break;\n"
     output_buffer += "                default:\n"
     output_buffer += "                    break;\n"
@@ -318,11 +346,11 @@ def D(on_pseudolayer, keycodes_hash, DEFINITION, output_buffer, index):
     output_buffer += "            break;\n"
     output_buffer += "        case RESTART:\n"
     output_buffer += "            switch (*self->counter) {\n"
-    for i in range(0, l):
+    for i in range(l):
         val = DEFINITION.split(',')[i].strip()
         code = expand_keycode_fnc(val)
-        output_buffer += "                case " + str(i + 1) + ":\n"
-        output_buffer += "                    key_out( " + code + ");\n"
+        output_buffer += f"                case {str(i + 1)}" + ":\n"
+        output_buffer += f"                    key_out( {code}" + ");\n"
         output_buffer += "                    break;\n"
     output_buffer += "                default:\n"
     output_buffer += "                    break;\n"
@@ -333,112 +361,116 @@ def D(on_pseudolayer, keycodes_hash, DEFINITION, output_buffer, index):
     output_buffer += "            break;\n"
     output_buffer += "    }\n"
     output_buffer += "}\n"
-    return new_chord(on_pseudolayer, keycodes_hash, True, 0, 0, "function_" + str(index), output_buffer, index)
+    return new_chord(
+        on_pseudolayer,
+        keycodes_hash,
+        True,
+        0,
+        0,
+        f"function_{str(index)}",
+        output_buffer,
+        index,
+    )
 
 def O(on_pseudolayer, keycodes_hash, DEFINITION, output_buffer, index):
-    if DEFINITION[0:3] == "KC_":
+    if DEFINITION[:3] == "KC_":
         return OSK(on_pseudolayer, keycodes_hash, DEFINITION, output_buffer, index)
     else:
         return OSL(on_pseudolayer, keycodes_hash, DEFINITION, output_buffer, index)
 
 def add_key(PSEUDOLAYER, KEYCODES_HASH, DEFINITION, output_buffer, index, number_of_strings, strings):
-    # if "= {" + KEYCODES_HASH + ", " + PSEUDOLAYER in output_buffer:
-    #     KEYCODES_HASH = re.sub('H_', '', KEYCODES_HASH)
-    #     raise Exception("You are trying to register a chord that you already registered (" + KEYCODES_HASH + ", " + PSEUDOLAYER + ")")
-    
     if DEFINITION == "":
         return [output_buffer, index, number_of_strings, strings]
-    else:
-        split = DEFINITION.split("(")
-        type = split[0].strip()
-        if len(split) == 1:
-            if type == "LOCK":
-                [output_buffer, index] = LOCK(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
-            elif type == "AT":
-                [output_buffer, index] = AT(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
-            elif type == "CMD":
-                [output_buffer, index] = CMD(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
-            elif type == "LEAD":
-                [output_buffer, index] = LEAD(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
-            elif type == "DM_RECORD":
-                [output_buffer, index] = DM_RECORD(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
-            elif type == "DM_NEXT":
-                [output_buffer, index] = DM_NEXT(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
-            elif type == "DM_END":
-                [output_buffer, index] = DM_END(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
-            elif type == "DM_PLAY":
-                [output_buffer, index] = DM_PLAY(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
-            elif type == "CLEAR_KB":
-                [output_buffer, index] = CLEAR(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
-            elif type == "RESET":
-                [output_buffer, index] = RESET(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
-            else:
-                code = expand_keycode_fnc(type)
-                [output_buffer, index] = KC(PSEUDOLAYER, KEYCODES_HASH, code, output_buffer, index)
+    split = DEFINITION.split("(")
+    type = split[0].strip()
+    if len(split) == 1:
+        if type == "LOCK":
+            [output_buffer, index] = LOCK(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
+        elif type == "AT":
+            [output_buffer, index] = AT(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
+        elif type == "CMD":
+            [output_buffer, index] = CMD(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
+        elif type == "LEAD":
+            [output_buffer, index] = LEAD(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
+        elif type == "DM_RECORD":
+            [output_buffer, index] = DM_RECORD(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
+        elif type == "DM_NEXT":
+            [output_buffer, index] = DM_NEXT(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
+        elif type == "DM_END":
+            [output_buffer, index] = DM_END(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
+        elif type == "DM_PLAY":
+            [output_buffer, index] = DM_PLAY(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
+        elif type == "CLEAR_KB":
+            [output_buffer, index] = CLEAR(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
+        elif type == "RESET":
+            [output_buffer, index] = RESET(PSEUDOLAYER, KEYCODES_HASH, output_buffer, index)
         else:
-            val = split[1][:-1].strip()
-            if type == "O":
-                code = expand_keycode_fnc(val)
-                [output_buffer, index] = O(PSEUDOLAYER, KEYCODES_HASH, code, output_buffer, index)
-            elif type == "D":
-                [output_buffer, index] = D(PSEUDOLAYER, KEYCODES_HASH, val, output_buffer, index)
-            elif type == "MK":
-                [output_buffer, index] = MK(PSEUDOLAYER, KEYCODES_HASH, val, output_buffer, index)
-            elif type == "M":
-                fnc = val.split(',')[0].strip()
-                val1 = val.split(',')[1].strip()
-                val2 = val.split(',')[2].strip()
-                [output_buffer, index] = M(PSEUDOLAYER, KEYCODES_HASH, val1, val2, fnc, output_buffer, index)
-            elif type == "KK":
+            code = expand_keycode_fnc(type)
+            [output_buffer, index] = KC(PSEUDOLAYER, KEYCODES_HASH, code, output_buffer, index)
+    else:
+        val = split[1][:-1].strip()
+        if type == "O":
+            code = expand_keycode_fnc(val)
+            [output_buffer, index] = O(PSEUDOLAYER, KEYCODES_HASH, code, output_buffer, index)
+        elif type == "D":
+            [output_buffer, index] = D(PSEUDOLAYER, KEYCODES_HASH, val, output_buffer, index)
+        elif type == "MK":
+            [output_buffer, index] = MK(PSEUDOLAYER, KEYCODES_HASH, val, output_buffer, index)
+        elif type == "M":
+            fnc = val.split(',')[0].strip()
+            val1 = val.split(',')[1].strip()
+            val2 = val.split(',')[2].strip()
+            [output_buffer, index] = M(PSEUDOLAYER, KEYCODES_HASH, val1, val2, fnc, output_buffer, index)
+        elif type == "KK":
+            val1 = val.split(',')[0].strip()
+            code1 = expand_keycode_fnc(val1)
+            val2 = val.split(',')[1].strip()
+            code2 = expand_keycode_fnc(val2)
+            [output_buffer, index] = KK(PSEUDOLAYER, KEYCODES_HASH, code1, code2, output_buffer, index)
+        elif type == "KL":
+            val1 = val.split(',')[0].strip()
+            code1 = expand_keycode_fnc(val1)
+            val2 = val.split(',')[1].strip()
+            [output_buffer, index] = KL(PSEUDOLAYER, KEYCODES_HASH, code1, val2, output_buffer, index)
+        elif type == "KM":
+            val1 = val.split(',')[0].strip()
+            code1 = expand_keycode_fnc(val1)
+            val2 = val.split(',')[1].strip()
+            code2 = expand_keycode_fnc(val2)
+            [output_buffer, index] = KM(PSEUDOLAYER, KEYCODES_HASH, code1, code2, output_buffer, index)
+        elif type == "AS":
+            code = expand_keycode_fnc(val)
+            [output_buffer, index] = AS(PSEUDOLAYER, KEYCODES_HASH, code, output_buffer, index)
+        elif type == "MO":
+            if ',' in val:
                 val1 = val.split(',')[0].strip()
-                code1 = expand_keycode_fnc(val1)
                 val2 = val.split(',')[1].strip()
-                code2 = expand_keycode_fnc(val2)
-                [output_buffer, index] = KK(PSEUDOLAYER, KEYCODES_HASH, code1, code2, output_buffer, index)
-            elif type == "KL":
-                val1 = val.split(',')[0].strip()
-                code1 = expand_keycode_fnc(val1)
-                val2 = val.split(',')[1].strip()
-                [output_buffer, index] = KL(PSEUDOLAYER, KEYCODES_HASH, code1, val2, output_buffer, index)
-            elif type == "KM":
-                val1 = val.split(',')[0].strip()
-                code1 = expand_keycode_fnc(val1)
-                val2 = val.split(',')[1].strip()
-                code2 = expand_keycode_fnc(val2)
-                [output_buffer, index] = KM(PSEUDOLAYER, KEYCODES_HASH, code1, code2, output_buffer, index)
-            elif type == "AS":
-                code = expand_keycode_fnc(val)
-                [output_buffer, index] = AS(PSEUDOLAYER, KEYCODES_HASH, code, output_buffer, index)
-            elif type == "MO":
-                if not ',' in val:
-                    [output_buffer, index] = MO(PSEUDOLAYER, KEYCODES_HASH, val, output_buffer, index)
-                else:
-                    val1 = val.split(',')[0].strip()
-                    val2 = val.split(',')[1].strip()
-                    [output_buffer, index] = MO_alt(PSEUDOLAYER, KEYCODES_HASH, val1, val2, output_buffer, index)
-            elif type == "DF":
-                [output_buffer, index] = DF(PSEUDOLAYER, KEYCODES_HASH, val, output_buffer, index)
-            elif type == "TO":
-                [output_buffer, index] = TO(PSEUDOLAYER, KEYCODES_HASH, val, output_buffer, index)
-            elif type == "STR":
-                [output_buffer, index, number_of_strings, strings] = STR(PSEUDOLAYER, KEYCODES_HASH, val, output_buffer, index, number_of_strings, strings)
+                [output_buffer, index] = MO_alt(PSEUDOLAYER, KEYCODES_HASH, val1, val2, output_buffer, index)
+            else:
+                [output_buffer, index] = MO(PSEUDOLAYER, KEYCODES_HASH, val, output_buffer, index)
+        elif type == "DF":
+            [output_buffer, index] = DF(PSEUDOLAYER, KEYCODES_HASH, val, output_buffer, index)
+        elif type == "TO":
+            [output_buffer, index] = TO(PSEUDOLAYER, KEYCODES_HASH, val, output_buffer, index)
+        elif type == "STR":
+            [output_buffer, index, number_of_strings, strings] = STR(PSEUDOLAYER, KEYCODES_HASH, val, output_buffer, index, number_of_strings, strings)
     return [output_buffer, index, number_of_strings, strings]
 
 def add_leader_combo(DEFINITION, FUNCTION):
     return list_of_leader_combos.append([DEFINITION, FUNCTION])
 
 def add_chord_set(PSEUDOLAYER, INPUT_STRING, TYPE, data, output_buffer, index, number_of_strings, strings):
-    chord_set = {}
-    for set in data["chord_sets"]:
-        if set["name"] == TYPE:
-            chord_set = set["chords"]
-            break
-    
+    chord_set = next(
+        (set["chords"] for set in data["chord_sets"] if set["name"] == TYPE),
+        {},
+    )
     separated_string = top_level_split(INPUT_STRING)
     for word, chord in zip(separated_string, chord_set):
-        chord_hash = reduce((lambda x, y: str(x) + " + " + str(y)), ["H_" + key for key in chord])
+        chord_hash = reduce(
+            lambda x, y: f"{str(x)} + {str(y)}", [f"H_{key}" for key in chord]
+        )
         [output_buffer, index, number_of_strings, strings] = add_key(PSEUDOLAYER, chord_hash, word, output_buffer, index, number_of_strings, strings)
-    
+
     return [output_buffer, index, number_of_strings, strings]
 
 def add_dictionary(PSEUDOLAYER, keycodes, array, output_buffer, index, number_of_strings, strings):
@@ -446,11 +478,11 @@ def add_dictionary(PSEUDOLAYER, keycodes, array, output_buffer, index, number_of
         hash = ""
         for word, key in zip(chord[:-1], keycodes):
             if word == "X":
-                hash = hash + " + H_" + key
+                hash = f"{hash} + H_{key}"
         hash = hash[3:]
         if hash != "":
             [output_buffer, index, number_of_strings, strings] = add_key(PSEUDOLAYER, hash, chord[-1], output_buffer, index, number_of_strings, strings)
-    
+
     return [output_buffer, index, number_of_strings, strings]
 
 def secret_chord(PSEUDOLAYER, ACTION, INPUT_STRING, data, output_buffer, index, number_of_strings, strings):
@@ -458,8 +490,8 @@ def secret_chord(PSEUDOLAYER, ACTION, INPUT_STRING, data, output_buffer, index, 
     hash = ""
     for word, key in zip(separated_string, data["keys"]):
         if word == "X":
-            hash = hash + " + H_" + key
-    
+            hash = f"{hash} + H_{key}"
+
     hash = hash[3:]
     if hash != "":
         return add_key(PSEUDOLAYER, hash, ACTION, output_buffer, index, number_of_strings, strings)
